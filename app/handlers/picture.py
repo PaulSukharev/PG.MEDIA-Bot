@@ -2,12 +2,16 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from datetime import datetime
 import app.helpers.pictureHelper as PictureHelper
 import requests
 import os
 
-available_picture_types = ["трансляция", "по ссылке"]
-available_picture_trans = ["утро", "вечер", "вторник"]
+available_picture_types = ['трансляция', 'по ссылке']
+available_picture_trans = ['утро', 'вечер', 'вторник']
+available_picture_trans_tue = ['вторник']
+available_picture_trans_sun = ['утро', 'вечер']
+week = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье']
 
 class MakePicture(StatesGroup):
     waiting_for_picture_type = State()
@@ -29,13 +33,24 @@ async def picture_type_chosen(message: types.Message, state: FSMContext):
 
     if message.text.lower() == available_picture_types[0]:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        for name in available_picture_trans:
+        weekday = datetime.today().weekday()
+
+        match weekday:
+            case 6:
+                buttons = available_picture_trans_sun
+            case 1:
+                buttons = available_picture_trans_tue
+            case _:
+                await message.answer(f'Отдыхай, сегодня же {week[weekday]}', reply_markup=types.ReplyKeyboardRemove())
+                return
+
+        for name in buttons:
             keyboard.add(name)
         await message.answer("Выберите что-нибудь:", reply_markup=keyboard)
         await MakePicture.waiting_for_picture_trans.set()
     
     if message.text.lower() == available_picture_types[1]:
-        await message.answer("Скинь ссылку на видео(трансляция или исход)")
+        await message.answer("Скинь ссылку на видео(трансляция или исход)", reply_markup=types.ReplyKeyboardRemove())
         await MakePicture.waiting_for_picture_link.set()
 
 async def picture_trans_chosen(message: types.Message, state: FSMContext):
@@ -64,10 +79,15 @@ async def picture_from_link(message: types.Message, state: FSMContext):
         return
     
     picture_path = PictureHelper.get_picture_from_link(message.text)
-    picture = open(picture_path, 'rb')
-    await message.answer_document(picture, reply_markup=types.ReplyKeyboardRemove())
-    await state.finish()
-    os.remove(picture_path)
+
+    if picture_path:
+        picture = open(picture_path, 'rb')
+        await message.answer_document(picture, reply_markup=types.ReplyKeyboardRemove())
+        await state.finish()
+        os.remove(picture_path)
+    else:
+        await message.answer("Не ломай!")
+        return
 
 def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_start, commands="picture", state="*")
