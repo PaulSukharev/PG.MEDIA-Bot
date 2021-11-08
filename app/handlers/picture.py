@@ -17,6 +17,7 @@ class MakePicture(StatesGroup):
     waiting_for_picture_type = State()
     waiting_for_picture_trans = State()
     waiting_for_picture_link = State()
+    waiting_for_picture_photo = State()
 
 async def picture_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)

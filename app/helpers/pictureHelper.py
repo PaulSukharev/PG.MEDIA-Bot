@@ -4,19 +4,14 @@ from datetime import *
 import re
 import os
 
-months = ["Unknown",
-          "ЯНВАРЯ",
-          "ФЕВРАЛЯ",
-          "МАРТА",
-          "АПРЕЛЯ",
-          "МАЯ",
-          "ИЮНЯ",
-          "ИЮЛЯ",
-          "АВГУСТА",
-          "СЕНТЯБРЯ",
-          "ОКТЯБРЯ",
-          "НОЯБРЯ",
-          "ДЕКАБРЯ"]
+months = ["Unknown", "ЯНВАРЯ", "ФЕВРАЛЯ", "МАРТА", "АПРЕЛЯ", "МАЯ", "ИЮНЯ", "ИЮЛЯ", "АВГУСТА", "СЕНТЯБРЯ", "ОКТЯБРЯ", "НОЯБРЯ", "ДЕКАБРЯ"]
+
+class Picture():
+    picture_path: str
+    title: str
+    date: str
+    preacher: str
+    result_picture_path: str
 
 def get_picture(title_text):
     my_image = Image.open("app/src/img/trans.jpg")
@@ -82,6 +77,23 @@ def get_picture_ishod(preacher, title, date):
     my_image.save(picture)
     return os.path.abspath(picture)
 
+def get_picture_preaching(preacher, title, date, picture_path):
+    my_image = Image.open(picture_path)
+    W, H = my_image.size
+    ratio = W / H
+    if ratio > 16/9:
+        crop_width = H * 16 / 9
+        crop_heigth = H
+    else:
+        crop_heigth = W * 9 / 16
+        crop_width = W
+
+    im_crop = my_image.crop(((W - crop_width) // 2, (H - crop_heigth) // 2, (W + crop_width) // 2, (H + crop_heigth) // 2))
+    new_im = im_crop.resize((1920, 1080), Image.ANTIALIAS)
+    picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
+    new_im.save(picture, quality=100)
+    return os.path.abspath(picture)
+
 def get_picture_from_link(link):
     videoInfo = Video.getInfo(link, mode= ResultMode.json)
 
@@ -94,5 +106,8 @@ def get_picture_from_link(link):
     if re.search(r'Исход', title_text):
         result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), videoInfo['description'].strip())
         return result
+
+    if re.search(r'Церковь на Поклонной Горе', videoInfo['channel']['name']):
+        return None
 
     return None
