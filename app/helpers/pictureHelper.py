@@ -33,7 +33,7 @@ def get_picture(title_text):
     image_editable.text(((W-w)/2, 1155), title_date, (0, 0, 0), font=title_font)
 
     picture = f'{title_text} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
-    my_image.save(picture)
+    my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
 def get_picture_trans(title, date):
@@ -53,7 +53,7 @@ def get_picture_trans(title, date):
     image_editable.text(((W-w)/2, 1155), date, (0, 0, 0), font=title_font)
 
     picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
-    my_image.save(picture)
+    my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
 def get_picture_ishod(preacher, title, date):
@@ -74,7 +74,7 @@ def get_picture_ishod(preacher, title, date):
     w, h = title_font.getsize(title)
     image_editable.text(((W-w)/2, (H-h)/2), title, (255, 255, 255), font=title_font)
     picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
-    my_image.save(picture)
+    my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
 def get_picture_preaching(preacher, title, date, picture_path):
