@@ -8,7 +8,7 @@ from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
 from app.handlers.common import Common
 import app.helpers.pictureHelper as PictureHelper
-import app.helpers.youtubeHelper as YoutubeHelper
+import app.helpers.videoHelper as VideoHelper
 import requests
 import os
 
@@ -103,7 +103,7 @@ async def edit_trans(message: types.Message, state: FSMContext):
         await message.answer("Снова ломаешь?!")
         return
 
-    res = YoutubeHelper.get_timestamps(message.text)
+    res = VideoHelper.get_timestamps(message.text)
     await state.update_data(timestamps=res, add_clips=[], link=message.text)
     await MakePicture.waiting_for_trans_clips.set()
     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -159,7 +159,7 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
         if timestamp[1] in add_clips:
             cut_clips.append(timestamp)
 
-    videos = YoutubeHelper.cut_video(user_data['link'], cut_clips)
+    videos = VideoHelper.cut_video(user_data['link'], cut_clips)
 
     temp_dir = videos[0].rsplit('/', 1)[0].strip()
 

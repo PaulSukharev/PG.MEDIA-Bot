@@ -31,9 +31,9 @@ class Common(StatesGroup):
 
 
 async def cmd_main_menu(message: types.Message, state: FSMContext):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).row()
     for command in available_main_menu_commands:
-        keyboard.add(command)
+        keyboard.insert(command)
 
     await Common.main_menu.set()  
     await message.answer_sticker(sticker=choice(sticker_set))  

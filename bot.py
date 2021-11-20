@@ -1,10 +1,11 @@
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, executor, Dispatcher
 from aiogram.dispatcher.filters.builtin import IDFilter
 from aiogram.types import BotCommand
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.bot.api import TelegramAPIServer
 
 from app.config_reader import load_config
 from app.handlers.picture import register_handlers_pictures
@@ -32,11 +33,11 @@ async def main():
     # Парсинг файла конфигурации
     config = load_config("config/bot.ini")
 
+    # local_server = TelegramAPIServer.from_base('http://localhost')
+
     # Объявление и инициализация объектов бота и диспетчера
     bot = Bot(token=config.tg_bot.token)
     dp = Dispatcher(bot, storage=MemoryStorage())
-
-    sticker_set = await bot.get_sticker_set('pgmedia')
 
     # Регистрация хэндлеров
     register_handlers_common(dp, config.tg_bot.admin_id)

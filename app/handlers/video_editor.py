@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Awaitable
 from aiogram import Dispatcher, types
@@ -8,13 +9,14 @@ from aiogram.types import message, user
 from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
 from app.handlers.common import Common
-import app.helpers.youtubeHelper as YoutubeHelper
+import app.helpers.videoHelper as VideoHelper
 import requests
 import os
 import shutil
+from asgiref.sync import sync_to_async
 
 available_video_editor_func = ['нарезать видео']
-available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141]
+available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141, 331292554]
 
 class EditVideo(StatesGroup):
     waiting_for_video_etidor_func = State()
@@ -47,7 +49,7 @@ async def cut_youtube_video(message: types.Message, state: FSMContext):
         await message.answer("Снова ломаешь?!")
         return
 
-    timestamps = await YoutubeHelper.get_timestamps(message.text)
+    timestamps = await VideoHelper.get_timestamps(message.text)
     if timestamps == []:
         await message.answer("У видео нет таймкодов. Добавьте таймкоды или отправьте другое видео.")
         return
@@ -73,6 +75,7 @@ async def cut_youtube_video_choose_clips(callback_query: types.CallbackQuery, st
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add("Вырезать выбранные отрывки")
+        keyboard.add("Вырезать и загрузить на YouTube")
         await EditVideo.waiting_for_cut_video_choose_cut_or_upload.set()
         await callback_query.message.delete()
         await callback_query.message.answer("Что делать?", reply_markup=keyboard)
@@ -100,8 +103,14 @@ async def remove_dir(path_to_dir: str):
     
     os.rmdir(path_to_dir) 
 
+async def send_videos(message: types.Message, videos: list):
+    for video_path in videos:
+        with open(video_path, 'rb') as video:
+            await message.answer(text = video_path.rsplit('/', 1)[1])
+            await message.answer_document(video)
+
 async def edit_trans_finish_step(message: types.Message, state: FSMContext):
-    if message.text != 'Вырезать выбранные отрывки':
+    if message.text != 'Вырезать выбранные отрывки' and message.text != 'Вырезать и загрузить на YouTube':
         await message.answer("Снова ломаешь?!")
         return
 
@@ -116,16 +125,17 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
         if timestamp[0] in add_clips:
             cut_clips.append(timestamp)
 
-    videos = await YoutubeHelper.cut_video(user_data['link'], cut_clips)
-    temp_dir = videos[0].rsplit('/', 1)[0].strip()
+    if (message.text == 'Вырезать выбранные отрывки'):
+        videos = await asyncio.create_task(VideoHelper.cut_video(user_data['link'], cut_clips))
+        temp_dir = (videos[0])[1].rsplit('/', 1)[0]
 
-    for video_path in videos:
-        with open(video_path, 'rb') as video:
-            await message.answer(text = video_path.rsplit('/', 1)[1])
-            await message.answer_document(video)
+        await asyncio.create_task(send_videos(message, videos))
+        await state.finish()
 
-    await state.finish()
-    shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir)
+    else:
+        asyncio.create_task(VideoHelper.cut_video_and_upload(user_data['link'], cut_clips))
+        state.finish()
 
 def register_handlers_video_editor(dp: Dispatcher):
     dp.register_message_handler(video_editor_start, Text(equals="premiere pro", ignore_case=True), state=Common.main_menu)
