@@ -6,13 +6,14 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import message, user
 from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
-from app.handlers.common import Common
-import app.helpers.pictureHelper as PictureHelper
-import app.helpers.videoHelper as VideoHelper
+from handlers.common import Common
+import helpers.pictureHelper as PictureHelper
+import helpers.videoHelper as VideoHelper
 import requests
 import os
+from misc import bot
 
-available_picture_types = ['трансляция', 'по ссылке']
+available_picture_types = ['трансляция', 'по ссылке', 'проповедь', 'СНКД', 'YouthPG']
 available_picture_trans = ['утро', 'вечер', 'вторник']
 available_picture_trans_tue = ['вторник']
 available_picture_trans_sun = ['утро', 'вечер']
@@ -26,6 +27,9 @@ class MakePicture(StatesGroup):
     waiting_for_trans_link = State()
     waiting_for_trans_clips = State()
     waiting_for_edit_video = State()
+    waiting_for_preacing_title = State()
+    waiting_for_preacing_description = State()
+    waiting_for_preacing_date = State()
 
 async def picture_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -61,6 +65,18 @@ async def picture_type_chosen(message: types.Message, state: FSMContext):
     if message.text.lower() == available_picture_types[1]:
         await message.answer("Скинь ссылку на видео(трансляция или исход)", reply_markup=types.ReplyKeyboardRemove())
         await MakePicture.waiting_for_picture_link.set()
+
+    if message.text.lower() == available_picture_types[2]:
+        await message.answer("Скинь картинку для фона", reply_markup=types.ReplyKeyboardRemove())
+        await MakePicture.waiting_for_picture_photo.set()
+
+    if message.text.lower() == available_picture_types[3]:
+        await message.answer("Находится в разработке", reply_markup=types.ReplyKeyboardRemove())
+        return
+
+    if message.text.lower() == available_picture_types[4]:
+        await message.answer("Находится в разработке", reply_markup=types.ReplyKeyboardRemove())
+        return
 
 async def picture_trans_chosen(message: types.Message, state: FSMContext):
     if message.text.lower() not in available_picture_trans:
@@ -98,77 +114,118 @@ async def picture_from_link(message: types.Message, state: FSMContext):
         await message.answer("Не ломай!")
         return
 
-async def edit_trans(message: types.Message, state: FSMContext):
-    if "Video unavailable" in requests.get(message.text).text:
-        await message.answer("Снова ломаешь?!")
-        return
+async def picture_preaching(message, state: FSMContext):
+    print('tut')
+    file_info = await bot.get_file(message.document.file_id)
+    downloaded_file = await bot.download_file(file_info.file_path)
 
-    res = VideoHelper.get_timestamps(message.text)
-    await state.update_data(timestamps=res, add_clips=[], link=message.text)
-    await MakePicture.waiting_for_trans_clips.set()
-    keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    for name in res:
-        print(name)
-        keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + str(name[2]), callback_data = name[0]))
-    keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
-    await message.answer("Выберите что-нибудь:", reply_markup=keyboard)
+    temp_dir = 'preaching_' + datetime.now().strftime("%Y%m%d-%H%M%S")
+    os.makedirs(f'temp/{temp_dir}')
 
-async def edit_trans_choose_clips(callback_query: types.CallbackQuery, state: FSMContext):
-    timestamps = (await state.get_data())['timestamps']
-    add_clips = (await state.get_data())['add_clips']
-    print(add_clips)
+    picture_path = f'temp/{temp_dir}/{message.document.file_name}'
+    print(picture_path)
+    with open(picture_path, 'wb') as new_file:
+        new_file.write(downloaded_file.getvalue())
 
-    if callback_query.data == 'Done':
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add("Нарезать видео")
-        await MakePicture.waiting_for_edit_video.set()
-        await callback_query.message.delete()
-        await callback_query.message.answer("Что делать?", reply_markup=keyboard)
-        return
+    await state.update_data(picture_path = picture_path)
+    await MakePicture.waiting_for_preacing_title.set()
+    await message.answer("Введите название проповеди")
 
-    if callback_query.data not in add_clips:
-        add_clips.append(callback_query.data)
-    else:
-        add_clips.remove(callback_query.data)
-    
-    keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    for name in timestamps:
-        if name[0] in add_clips:
-            keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9C\x85'.decode() + name[2], callback_data = name[0]))
-        else:
-            keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + name[2], callback_data = name[0]))
-    keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
-    await state.update_data(add_clips = add_clips)
-    await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+async def picture_preaching_title(message: types.Message, state: FSMContext):
+    await state.update_data(title = message.text)
+    await MakePicture.waiting_for_preacing_description.set()
+    await message.answer("Введите ФИ проповедника")
 
-async def edit_trans_finish_step(message: types.Message, state: FSMContext):
-    if message.text != 'Нарезать видео':
-        await message.answer("Снова ломаешь?!")
-        return
-    await message.answer(text='Пожалуйста ожидайте', reply_markup=types.ReplyKeyboardRemove())
+async def picture_preaching_date(message: types.Message, state: FSMContext):
+    await state.update_data(preacher = message.text)
+    await MakePicture.waiting_for_preacing_date.set()
+    await message.answer("Введите дату проповеди в формате: 00.00.0000")
+
+async def picture_preacting_make_and_send(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
-    add_clips = user_data['add_clips']
-    timestamps = user_data['timestamps']
+    title = user_data['title']
+    preacher = user_data['preacher']
+    date = message.text.lower()
+    picture_path = user_data['picture_path']
 
-    if add_clips == []:
-        await message.answer("Хватит ломать бота! Иначе добавим тебя в черный список!")
-        return
+    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, 1)
 
-    cut_clips = []
-    for timestamp in timestamps:
-        if timestamp[1] in add_clips:
-            cut_clips.append(timestamp)
-
-    videos = VideoHelper.cut_video(user_data['link'], cut_clips)
-
-    temp_dir = videos[0].rsplit('/', 1)[0].strip()
-
-    print(videos)
-    for video_path in videos:
-        video = open(video_path, 'rb')
-        await message.answer_document(video)
-    os.remove(temp_dir)
+    picture = open(picture_path, 'rb')
+    await message.answer_document(picture, reply_markup=types.ReplyKeyboardRemove())
     await state.finish()
+    os.remove(picture_path)
+
+# async def edit_trans(message: types.Message, state: FSMContext):
+#     if "Video unavailable" in requests.get(message.text).text:
+#         await message.answer("Снова ломаешь?!")
+#         return
+
+#     res = VideoHelper.get_timestamps(message.text)
+#     await state.update_data(timestamps=res, add_clips=[], link=message.text)
+#     await MakePicture.waiting_for_trans_clips.set()
+#     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#     for name in res:
+#         print(name)
+#         keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + str(name[2]), callback_data = name[0]))
+#     keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
+#     await message.answer("Выберите что-нибудь:", reply_markup=keyboard)
+
+# async def edit_trans_choose_clips(callback_query: types.CallbackQuery, state: FSMContext):
+#     timestamps = (await state.get_data())['timestamps']
+#     add_clips = (await state.get_data())['add_clips']
+#     print(add_clips)
+
+#     if callback_query.data == 'Done':
+#         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+#         keyboard.add("Нарезать видео")
+#         await MakePicture.waiting_for_edit_video.set()
+#         await callback_query.message.delete()
+#         await callback_query.message.answer("Что делать?", reply_markup=keyboard)
+#         return
+
+#     if callback_query.data not in add_clips:
+#         add_clips.append(callback_query.data)
+#     else:
+#         add_clips.remove(callback_query.data)
+    
+#     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+#     for name in timestamps:
+#         if name[0] in add_clips:
+#             keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9C\x85'.decode() + name[2], callback_data = name[0]))
+#         else:
+#             keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + name[2], callback_data = name[0]))
+#     keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
+#     await state.update_data(add_clips = add_clips)
+#     await callback_query.message.edit_reply_markup(reply_markup=keyboard)
+
+# async def edit_trans_finish_step(message: types.Message, state: FSMContext):
+#     if message.text != 'Нарезать видео':
+#         await message.answer("Снова ломаешь?!")
+#         return
+#     await message.answer(text='Пожалуйста ожидайте', reply_markup=types.ReplyKeyboardRemove())
+#     user_data = await state.get_data()
+#     add_clips = user_data['add_clips']
+#     timestamps = user_data['timestamps']
+
+#     if add_clips == []:
+#         await message.answer("Хватит ломать бота! Иначе добавим тебя в черный список!")
+#         return
+
+#     cut_clips = []
+#     for timestamp in timestamps:
+#         if timestamp[1] in add_clips:
+#             cut_clips.append(timestamp)
+
+#     videos = VideoHelper.cut_video(user_data['link'], cut_clips)
+
+#     temp_dir = videos[0].rsplit('/', 1)[0].strip()
+
+#     print(videos)
+#     for video_path in videos:
+#         video = open(video_path, 'rb')
+#         await message.answer_document(video)
+#     os.remove(temp_dir)
+#     await state.finish()
 
 
 def register_handlers_pictures(dp: Dispatcher):
@@ -176,7 +233,11 @@ def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_type_chosen, state=MakePicture.waiting_for_picture_type)
     dp.register_message_handler(picture_trans_chosen, state=MakePicture.waiting_for_picture_trans)
     dp.register_message_handler(picture_from_link, state=MakePicture.waiting_for_picture_link)
-    dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
-    dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)
+    dp.register_message_handler(picture_preaching, content_types=['document'], state=MakePicture.waiting_for_picture_photo)
+    dp.register_message_handler(picture_preaching_title, state=MakePicture.waiting_for_preacing_title)
+    dp.register_message_handler(picture_preaching_date, state=MakePicture.waiting_for_preacing_description)
+    dp.register_message_handler(picture_preacting_make_and_send, state=MakePicture.waiting_for_preacing_date)
+    # dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
+    # dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)
     # dp.register_message_handler(edit_trans_finish_step, commands="Загрузить на ютуб", state=MakePicture.waiting_for_trans_clips)
-    dp.register_callback_query_handler(edit_trans_choose_clips, state=MakePicture.waiting_for_trans_clips)
+    # dp.register_callback_query_handler(edit_trans_choose_clips, state=MakePicture.waiting_for_trans_clips)

@@ -1,4 +1,6 @@
-from PIL import Image, ImageFont, ImageDraw
+from turtle import width
+from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+from sympy import factor
 from youtubesearchpython import *
 from datetime import *
 import re
@@ -14,10 +16,10 @@ class Picture():
     result_picture_path: str
 
 def get_picture(title_text):
-    my_image = Image.open("app/src/img/trans.jpg")
+    my_image = Image.open("src/img/trans.jpg")
     W, H = my_image.size
     image_editable = ImageDraw.Draw(my_image)
-    title_font = ImageFont.truetype('app/src/fonts/SolomonSans-Medium.ttf', 60)
+    title_font = ImageFont.truetype('src/fonts/SolomonSans-Medium.ttf', 60)
 
     now = (datetime.now())
     day = (now.day)
@@ -37,10 +39,10 @@ def get_picture(title_text):
     return os.path.abspath(picture)
 
 def get_picture_trans(title, date):
-    my_image = Image.open("app/src/img/trans.jpg")
+    my_image = Image.open("src/img/trans.jpg")
     W, H = my_image.size
     image_editable = ImageDraw.Draw(my_image)
-    title_font = ImageFont.truetype('app/src/fonts/SolomonSans-Medium.ttf', 60, encoding='UTF-8')
+    title_font = ImageFont.truetype('src/fonts/SolomonSans-Medium.ttf', 60, encoding='UTF-8')
 
     title = title.upper()
     w, h = title_font.getsize(title)
@@ -57,10 +59,10 @@ def get_picture_trans(title, date):
     return os.path.abspath(picture)
 
 def get_picture_ishod(preacher, title, date):
-    my_image = Image.open("app/src/img/ishod.jpg")
+    my_image = Image.open("src/img/ishod.jpg")
     W, H = my_image.size
     image_editable = ImageDraw.Draw(my_image)
-    title_font = ImageFont.truetype('app/src/fonts/SolomonSans-Medium.ttf', 75, encoding='UTF-8')
+    title_font = ImageFont.truetype('src/fonts/SolomonSans-Medium.ttf', 75, encoding='UTF-8')
 
     preacher = preacher.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
     print(preacher)
@@ -70,14 +72,14 @@ def get_picture_ishod(preacher, title, date):
     w, h = title_font.getsize(date)
     image_editable.text(((W-w)/2, 1080), date, (255, 255, 255), font=title_font)
 
-    title_font = ImageFont.truetype('app/src/fonts/SolomonSans-SemiBold.ttf', 150, encoding='UTF-8')
+    title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 150, encoding='UTF-8')
     w, h = title_font.getsize(title)
     image_editable.text(((W-w)/2, (H-h)/2), title, (255, 255, 255), font=title_font)
     picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
-def get_picture_preaching(preacher, title, date, picture_path):
+def get_picture_preaching(preacher, title, date, picture_path, factor):
     my_image = Image.open(picture_path)
     W, H = my_image.size
     ratio = W / H
@@ -90,8 +92,47 @@ def get_picture_preaching(preacher, title, date, picture_path):
 
     im_crop = my_image.crop(((W - crop_width) // 2, (H - crop_heigth) // 2, (W + crop_width) // 2, (H + crop_heigth) // 2))
     new_im = im_crop.resize((1920, 1080), Image.ANTIALIAS)
-    picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
-    new_im.save(picture, quality=100)
+
+    factor = 0.5
+    enhancer = ImageEnhance.Brightness(new_im)
+    dark_im = enhancer.enhance(factor)
+
+    front_im = Image.open('src/img/preach.png')
+    front_im = front_im.convert('RGBA')
+
+    dark_im.paste(front_im, (0, 0), front_im)
+
+    W, H = dark_im.size
+    image_editable = ImageDraw.Draw(dark_im)
+
+    title_lines = len(title.split('\n'))
+
+    if (title_lines == 1):
+        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 115, encoding='UTF-8')
+
+    if (title_lines == 2):
+        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 105, encoding='UTF-8')
+    
+    title = title.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
+    w, h = title_font.getsize_multiline(title, spacing=50)
+    image_editable.multiline_text(((W-w)/2, (H-h)/2), title, (255, 255, 255), font=title_font, spacing=50, align='center')
+
+    preacher_font = ImageFont.truetype('src/fonts/SolomonSans-Medium.ttf', 60, encoding='UTF-8')
+
+    preacher = preacher.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
+    w, h = preacher_font.getsize(preacher)
+    image_editable.text(((W-w)/2, 180), preacher, (255, 255, 255), font=preacher_font)
+
+    date = datetime.strptime(date, '%d.%m.%Y').date()
+    date = f'{date.day} {months[date.month].lower()} {date.year}'
+    w, h = preacher_font.getsize(date)
+    image_editable.text(((W-w)/2, 850), date, (255, 255, 255), font=preacher_font)
+
+    pict_title = title.split('\n')[0]
+    picture = f'{pict_title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
+
+    print(picture)
+    dark_im.save(picture, quality=100)
     return os.path.abspath(picture)
 
 def get_picture_from_link(link):

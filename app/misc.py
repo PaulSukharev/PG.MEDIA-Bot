@@ -1,19 +1,14 @@
-import asyncio
 import logging
-
 from aiogram import Bot, executor, Dispatcher
-from aiogram.dispatcher.filters.builtin import IDFilter
-from aiogram.types import BotCommand
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.bot.api import TelegramAPIServer
-
-from app.config_reader import load_config
-from app.handlers.picture import register_handlers_pictures
-from app.handlers.video_editor import register_handlers_video_editor
-from app.handlers.common import register_handlers_common
+from aiogram.types import BotCommand
+from config_reader import load_config
 
 logger = logging.getLogger(__name__)
+config = load_config("config/bot.ini")
 
+bot = Bot(token=config.tg_bot.token)
+dp = Dispatcher(bot, storage=MemoryStorage())
 
 async def set_commands(bot: Bot):
     commands = [
@@ -21,8 +16,11 @@ async def set_commands(bot: Bot):
     ]
     await bot.set_my_commands(commands)
 
+async def start():
+    from handlers.picture import register_handlers_pictures
+    from handlers.video_editor import register_handlers_video_editor
+    from handlers.common import register_handlers_common
 
-async def main():
     # Настройка логирования в stdout
     logging.basicConfig(
         level=logging.INFO,
@@ -31,12 +29,12 @@ async def main():
     logger.error("Starting bot")
 
     # Парсинг файла конфигурации
-    config = load_config("config/bot.ini")
+    # config = load_config("config/bot.ini")
 
     # local_server = TelegramAPIServer.from_base('http://localhost')
 
     # Объявление и инициализация объектов бота и диспетчера
-    bot = Bot(token=config.tg_bot.token)
+    # bot = Bot(token=config.tg_bot.token)
     dp = Dispatcher(bot, storage=MemoryStorage())
 
     # Регистрация хэндлеров
@@ -50,7 +48,3 @@ async def main():
     # Запуск поллинга
     # await dp.skip_updates()  # пропуск накопившихся апдейтов (необязательно)
     await dp.start_polling()
-
-
-if __name__ == '__main__':
-    asyncio.run(main())

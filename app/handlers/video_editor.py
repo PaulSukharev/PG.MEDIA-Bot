@@ -9,8 +9,10 @@ from aiogram.types import message, user
 from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
 from aiogram.bot.bot import Bot
-from app.handlers.common import Common
-import app.helpers.videoHelper as VideoHelper
+from handlers.common import Common
+import misc
+# from bot import bot
+import helpers.videoHelper as VideoHelper
 import requests
 import os
 import shutil
@@ -141,8 +143,11 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
     else:
         upload_clips = await VideoHelper.cut_video_and_upload(user_data['link'], cut_clips)
         await message.answer(text='Видео загружено на YouTube. Спасибо за ожидание', reply_markup=types.ReplyKeyboardRemove())
-        # for clip in upload_clips:
-            # await bot.send_message(chat_id=-557652012, text=f'На YouTube загружено видео: {clip[2]}')
+        print(upload_clips)
+
+        for clip in upload_clips:
+            await misc.bot.send_message(chat_id=-557652012, text=f'На YouTube загружено видео: {clip[2]}')
+
         await state.finish()
 
 def register_handlers_video_editor(dp: Dispatcher):

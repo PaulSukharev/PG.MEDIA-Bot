@@ -15,7 +15,7 @@ from youtubesearchpython import *
 from moviepy.editor import *
 import datetime
  
-from app.config_reader import load_config
+from config_reader import load_config
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -45,8 +45,8 @@ VALID_PRIVACY_STATUSES = ('public', 'private', 'unlisted')
 
 API_KEY = '*********'
  
-APP_TOKEN_FILE = "app/helpers/client_secret.json"
-USER_TOKEN_FILE = "user_token.json"
+APP_TOKEN_FILE = "helpers/client_secret.json"
+USER_TOKEN_FILE = "config/user_token.json"
 
 SCOPES = [
     'https://www.googleapis.com/auth/youtube.force-ssl',
@@ -132,14 +132,14 @@ async def download_video(url: str):
     temp_dir = 'cut_video_temp' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     print(temp_dir)
 
-    video = youtube.streams.filter(res='1080p', file_extension='mp4').first().download(output_path=f'app/temp/{temp_dir}', filename_prefix='video')
-    audio = youtube.streams.filter(type='audio', file_extension='mp4').first().download(output_path=f'app/temp/{temp_dir}', filename_prefix='audio')
+    video = youtube.streams.filter(res='1080p', file_extension='mp4').first().download(output_path=f'temp/{temp_dir}', filename_prefix='video')
+    audio = youtube.streams.filter(type='audio', file_extension='mp4').first().download(output_path=f'temp/{temp_dir}', filename_prefix='audio')
 
     video_stream = ffmpeg.input(video)
     audio_stream = ffmpeg.input(audio)
 
     video = 'video.mp4'
-    ffmpeg.output(audio_stream, video_stream, f'app/temp/{temp_dir}/{video}', vcodec='copy', acodec='copy').run()
+    ffmpeg.output(audio_stream, video_stream, f'temp/{temp_dir}/{video}', vcodec='copy', acodec='copy').run()
 
     return (video, temp_dir)
 
@@ -159,8 +159,8 @@ async def cut_video(link: str, clips: list):
     for clip in clips:
         start_time = await parse_timestamp_to_seconds(clip[0])
         end_time = await parse_timestamp_to_seconds(clip[1])
-        cut_clip_path = f'app/temp/{video[1]}/{start_time}.mp4'
-        ffmpeg_extract_subclip(f'app/temp/{video[1]}/{video[0]}', start_time, end_time, targetname=cut_clip_path)
+        cut_clip_path = f'temp/{video[1]}/{start_time}.mp4'
+        ffmpeg_extract_subclip(f'temp/{video[1]}/{video[0]}', start_time, end_time, targetname=cut_clip_path)
         cut_clips.append((start_time, cut_clip_path, clip[2]))
 
     return cut_clips
@@ -198,7 +198,8 @@ async def upload_video_to_youtube(video, description):
             'description' : description
         },
         'status':{
-            'privacyStatus': 'private'
+            'privacyStatus': 'private',
+            'selfDeclaredMadeForKids': 'false'
         }
     }
 
