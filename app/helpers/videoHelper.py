@@ -8,6 +8,7 @@ import httplib2
 import ffmpeg
 import shutil
 from googleapiclient.http import MediaFileUpload
+from aiohttp import streamer
 
 import pytube
 from youtubesearchpython import *
@@ -23,6 +24,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from googleapiclient.http import MediaFileUpload
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 import yt
 
@@ -113,10 +115,22 @@ async def get_timestamps(link: str):
     
     return timecodes
 
+async def check_video_1080p(url: str):
+    youtube = pytube.YouTube(url)
+    streams = youtube.streams
+
+    if streams == None:
+        return None
+    
+    video = streams.filter(res='1080p', file_extension='mp4').first()
+    return video
 
 async def download_video(url: str):
     youtube = pytube.YouTube(url)
+    print(youtube)
+
     temp_dir = 'cut_video_temp' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    print(temp_dir)
 
     video = youtube.streams.filter(res='1080p', file_extension='mp4').first().download(output_path=f'app/temp/{temp_dir}', filename_prefix='video')
     audio = youtube.streams.filter(type='audio', file_extension='mp4').first().download(output_path=f'app/temp/{temp_dir}', filename_prefix='audio')
@@ -125,7 +139,7 @@ async def download_video(url: str):
     audio_stream = ffmpeg.input(audio)
 
     video = 'video.mp4'
-    ffmpeg.output(audio_stream, video_stream, f'app/temp/{temp_dir}/{video}').run()
+    ffmpeg.output(audio_stream, video_stream, f'app/temp/{temp_dir}/{video}', vcodec='copy', acodec='copy').run()
 
     return (video, temp_dir)
 
@@ -142,14 +156,12 @@ async def cut_video(link: str, clips: list):
     video = await download_video(link)
 
     cut_clips = []
-    with VideoFileClip(f'app/temp/{video[1]}/{video[0]}') as stream_video:
-        for clip in clips:
-            t1 = await parse_timestamp_to_seconds(clip[0])
-            t2 = await parse_timestamp_to_seconds(clip[1])
-            cut_clip = stream_video.subclip(t1, t2)
-            cut_clip_path = f'app/temp/{video[1]}/{t1}.mp4'
-            cut_clip.write_videofile(cut_clip_path)
-            cut_clips.append((t1, cut_clip_path, clip[2]))
+    for clip in clips:
+        start_time = await parse_timestamp_to_seconds(clip[0])
+        end_time = await parse_timestamp_to_seconds(clip[1])
+        cut_clip_path = f'app/temp/{video[1]}/{start_time}.mp4'
+        ffmpeg_extract_subclip(f'app/temp/{video[1]}/{video[0]}', start_time, end_time, targetname=cut_clip_path)
+        cut_clips.append((start_time, cut_clip_path, clip[2]))
 
     return cut_clips
 
@@ -157,6 +169,7 @@ async def cut_video(link: str, clips: list):
 async def cut_video_and_upload(link: str, clips: list):
     cut_clips = await cut_video(link, clips)
     await upload_videos_to_youtube(link, cut_clips)
+    return cut_clips
 
 async def upload_videos_to_youtube(link: str, videos: list):
     print('start upload videos')

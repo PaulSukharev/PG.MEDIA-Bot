@@ -8,6 +8,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import message, user
 from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
+from aiogram.bot.bot import Bot
 from app.handlers.common import Common
 import app.helpers.videoHelper as VideoHelper
 import requests
@@ -49,6 +50,10 @@ async def cut_youtube_video(message: types.Message, state: FSMContext):
         await message.answer("Снова ломаешь?!")
         return
 
+    if await VideoHelper.check_video_1080p(message.text) == None:
+        await message.answer("У видео недоступно разрешение 1080p. Проверьте пожалуйста ссылку.")
+        return
+
     timestamps = await VideoHelper.get_timestamps(message.text)
     if timestamps == []:
         await message.answer("У видео нет таймкодов. Добавьте таймкоды или отправьте другое видео.")
@@ -74,7 +79,7 @@ async def cut_youtube_video_choose_clips(callback_query: types.CallbackQuery, st
             return
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add("Вырезать выбранные отрывки")
+        # keyboard.add("Вырезать выбранные отрывки")
         keyboard.add("Вырезать и загрузить на YouTube")
         await EditVideo.waiting_for_cut_video_choose_cut_or_upload.set()
         await callback_query.message.delete()
@@ -134,8 +139,11 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
 
         shutil.rmtree(temp_dir)
     else:
-        asyncio.create_task(VideoHelper.cut_video_and_upload(user_data['link'], cut_clips))
-        state.finish()
+        upload_clips = await VideoHelper.cut_video_and_upload(user_data['link'], cut_clips)
+        await message.answer(text='Видео загружено на YouTube. Спасибо за ожидание', reply_markup=types.ReplyKeyboardRemove())
+        # for clip in upload_clips:
+            # await bot.send_message(chat_id=-557652012, text=f'На YouTube загружено видео: {clip[2]}')
+        await state.finish()
 
 def register_handlers_video_editor(dp: Dispatcher):
     dp.register_message_handler(video_editor_start, Text(equals="premiere pro", ignore_case=True), state=Common.main_menu)
