@@ -132,6 +132,7 @@ async def download_video(url: str):
     temp_dir = 'cut_video_temp' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     print(temp_dir)
 
+    print(youtube.streams.filter(res='1080p', file_extension='mp4'))
     video = youtube.streams.filter(res='1080p', file_extension='mp4').first().download(output_path=f'temp/{temp_dir}', filename_prefix='video')
     audio = youtube.streams.filter(type='audio', file_extension='mp4').first().download(output_path=f'temp/{temp_dir}', filename_prefix='audio')
 

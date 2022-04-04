@@ -79,7 +79,7 @@ def get_picture_ishod(preacher, title, date):
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
-def get_picture_preaching(preacher, title, date, picture_path, factor):
+def get_picture_preaching(preacher, title, date, picture_path, transparent):
     my_image = Image.open(picture_path)
     W, H = my_image.size
     ratio = W / H
@@ -93,9 +93,8 @@ def get_picture_preaching(preacher, title, date, picture_path, factor):
     im_crop = my_image.crop(((W - crop_width) // 2, (H - crop_heigth) // 2, (W + crop_width) // 2, (H + crop_heigth) // 2))
     new_im = im_crop.resize((1920, 1080), Image.ANTIALIAS)
 
-    factor = 0.5
     enhancer = ImageEnhance.Brightness(new_im)
-    dark_im = enhancer.enhance(factor)
+    dark_im = enhancer.enhance(transparent)
 
     front_im = Image.open('src/img/preach.png')
     front_im = front_im.convert('RGBA')
@@ -108,10 +107,10 @@ def get_picture_preaching(preacher, title, date, picture_path, factor):
     title_lines = len(title.split('\n'))
 
     if (title_lines == 1):
-        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 115, encoding='UTF-8')
+        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 95, encoding='UTF-8')
 
     if (title_lines == 2):
-        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 105, encoding='UTF-8')
+        title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 90, encoding='UTF-8')
     
     title = title.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
     w, h = title_font.getsize_multiline(title, spacing=50)
@@ -128,15 +127,17 @@ def get_picture_preaching(preacher, title, date, picture_path, factor):
     w, h = preacher_font.getsize(date)
     image_editable.text(((W-w)/2, 850), date, (255, 255, 255), font=preacher_font)
 
+    temp_dir = picture_path.rsplit('/', 1)[0]
     pict_title = title.split('\n')[0]
-    picture = f'{pict_title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
+    picture = f'{temp_dir}/{pict_title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
 
     print(picture)
+    # dark_im = dark_im.convert('RGB')
     dark_im.save(picture, quality=100)
     return os.path.abspath(picture)
 
 def get_picture_from_link(link):
-    videoInfo = Video.getInfo(link, mode= ResultMode.json)
+    videoInfo = Video.getInfo(link, mode = ResultMode.json)
 
     video_title = videoInfo['title'].split('|')
     title_text = video_title[0].strip()

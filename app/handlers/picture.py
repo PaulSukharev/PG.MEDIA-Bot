@@ -1,4 +1,5 @@
 import re
+import shutil
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -12,6 +13,7 @@ import helpers.videoHelper as VideoHelper
 import requests
 import os
 from misc import bot
+from helpers.keyboardHelper import inline_keyboard_picture_edit
 
 available_picture_types = ['трансляция', 'по ссылке', 'проповедь', 'СНКД', 'YouthPG']
 available_picture_trans = ['утро', 'вечер', 'вторник']
@@ -30,6 +32,7 @@ class MakePicture(StatesGroup):
     waiting_for_preacing_title = State()
     waiting_for_preacing_description = State()
     waiting_for_preacing_date = State()
+    waiting_for_preacing_edit = State()
 
 async def picture_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -67,7 +70,7 @@ async def picture_type_chosen(message: types.Message, state: FSMContext):
         await MakePicture.waiting_for_picture_link.set()
 
     if message.text.lower() == available_picture_types[2]:
-        await message.answer("Скинь картинку для фона", reply_markup=types.ReplyKeyboardRemove())
+        await message.answer("Скинь картинку для фона (как файл)", reply_markup=types.ReplyKeyboardRemove())
         await MakePicture.waiting_for_picture_photo.set()
 
     if message.text.lower() == available_picture_types[3]:
@@ -138,6 +141,7 @@ async def picture_preaching_title(message: types.Message, state: FSMContext):
 
 async def picture_preaching_date(message: types.Message, state: FSMContext):
     await state.update_data(preacher = message.text)
+    await state.update_data(transparent = 0.5)
     await MakePicture.waiting_for_preacing_date.set()
     await message.answer("Введите дату проповеди в формате: 00.00.0000")
 
@@ -146,14 +150,50 @@ async def picture_preacting_make_and_send(message: types.Message, state: FSMCont
     title = user_data['title']
     preacher = user_data['preacher']
     date = message.text.lower()
+    await state.update_data(date = date)
     picture_path = user_data['picture_path']
+    transparent = user_data['transparent']
 
-    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, 1)
-
+    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
     picture = open(picture_path, 'rb')
-    await message.answer_document(picture, reply_markup=types.ReplyKeyboardRemove())
-    await state.finish()
-    os.remove(picture_path)
+    await MakePicture.waiting_for_preacing_edit.set()
+    await message.answer_photo(picture, reply_markup=inline_keyboard_picture_edit)
+    # await state.finish()
+    # os.remove(picture_path)
+
+async def picture_preacting_edit(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.edit_reply_markup(reply_markup = None)
+    user_data = await state.get_data()
+    title = user_data['title']
+    preacher = user_data['preacher']
+    date = user_data['date']
+    picture_path = user_data['picture_path']
+    transparent = user_data['transparent']
+
+    match callback_query.data:
+        case 'file':
+            picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+            picture = open(picture_path, 'rb')
+            await callback_query.message.delete()
+            await callback_query.message.answer_document(picture)
+            await state.finish()
+            temp_dir = picture_path.rsplit('\\', 1)[0]
+            shutil.rmtree(temp_dir)
+            return
+
+        case 'dark':
+            transparent = transparent -  0.2
+
+        case 'light':
+            transparent = transparent +  0.2
+
+    await state.update_data(transparent = transparent)
+
+    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+    picture = open(picture_path, 'rb')
+
+    await callback_query.message.edit_media(media = types.InputMediaPhoto(picture), reply_markup = inline_keyboard_picture_edit)
+            
 
 # async def edit_trans(message: types.Message, state: FSMContext):
 #     if "Video unavailable" in requests.get(message.text).text:
@@ -237,6 +277,7 @@ def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_preaching_title, state=MakePicture.waiting_for_preacing_title)
     dp.register_message_handler(picture_preaching_date, state=MakePicture.waiting_for_preacing_description)
     dp.register_message_handler(picture_preacting_make_and_send, state=MakePicture.waiting_for_preacing_date)
+    dp.register_callback_query_handler(picture_preacting_edit, state=MakePicture.waiting_for_preacing_edit)
     # dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
     # dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)
     # dp.register_message_handler(edit_trans_finish_step, commands="Загрузить на ютуб", state=MakePicture.waiting_for_trans_clips)
