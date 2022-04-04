@@ -1,93 +1,14 @@
-import json
-import os
 import re
-import time
-import random
-import http.client as httplib
-import httplib2
 import ffmpeg
 import shutil
-from googleapiclient.http import MediaFileUpload
-from aiohttp import streamer
-
 import pytube
 from youtubesearchpython import *
 from moviepy.editor import *
 import datetime
- 
-from config_reader import load_config
-
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-
-from googleapiclient.http import MediaFileUpload
+import helpers.youtubeHelper as YoutubeHelper
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
-import yt
-
 months = ["unknown", "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
-
-RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
-
-RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError, httplib.NotConnected,
-  httplib.IncompleteRead, httplib.ImproperConnectionState,
-  httplib.CannotSendRequest, httplib.CannotSendHeader,
-  httplib.ResponseNotReady, httplib.BadStatusLine)
-
-MAX_RETRIES = 10
-
-httplib2.RETRIES = 1
-
-VALID_PRIVACY_STATUSES = ('public', 'private', 'unlisted')
-
-API_KEY = '*********'
- 
-APP_TOKEN_FILE = "helpers/client_secret.json"
-USER_TOKEN_FILE = "config/user_token.json"
-
-SCOPES = [
-    'https://www.googleapis.com/auth/youtube.force-ssl',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/youtube.upload'
-]
-
-def get_creds_saved():
-    os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-    # https://developers.google.com/docs/api/quickstart/python
-    creds = None
- 
-    if os.path.exists(USER_TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(USER_TOKEN_FILE, SCOPES)
- 
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
- 
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(APP_TOKEN_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
- 
-        with open(USER_TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
- 
-    return creds
-
-
-def get_service():
-    creds = get_creds_saved()
-    service = build('oauth2', 'v2', credentials=creds)
-    return service
-
-
-def get_service_creds(service = 'youtube', version = 'v3'):
-    creds = get_creds_saved()
-    service = build(service, version, credentials=creds)
-    return service
-
 
 async def get_video_info(link: str):
     return Video.getInfo(link, mode= ResultMode.json)
@@ -115,6 +36,7 @@ async def get_timestamps(link: str):
     
     return timecodes
 
+
 async def check_video_1080p(url: str):
     youtube = pytube.YouTube(url)
     streams = youtube.streams
@@ -124,6 +46,7 @@ async def check_video_1080p(url: str):
     
     video = streams.filter(res='1080p', file_extension='mp4').first()
     return video
+
 
 async def download_video(url: str):
     youtube = pytube.YouTube(url)
@@ -172,6 +95,7 @@ async def cut_video_and_upload(link: str, clips: list):
     await upload_videos_to_youtube(link, cut_clips)
     return cut_clips
 
+
 async def upload_videos_to_youtube(link: str, videos: list):
     print('start upload videos')
     youtube = pytube.YouTube(link)
@@ -179,75 +103,8 @@ async def upload_videos_to_youtube(link: str, videos: list):
     description = f'{video_date.day} {months[video_date.month]} {video_date.year}'
 
     for video in videos:
-        await upload_video_to_youtube(video, description)
+        await YoutubeHelper.upload_video_to_youtube(video, description)
     
     temp_dir = (videos[0])[1].rsplit('/', 1)[0]
     shutil.rmtree(temp_dir)
     print('end upload videos')
-
-
-async def upload_video_to_youtube(video, description):
-    print(f"** upload video {video[2]}")
-    media = MediaFileUpload(video[1], chunksize=-1, resumable=True)
-
-    print(video[2])
-    print(description)
-
-    meta = {
-        'snippet': {
-            'title' : video[2],
-            'description' : description
-        },
-        'status':{
-            'privacyStatus': 'private',
-            'selfDeclaredMadeForKids': 'false'
-        }
-    }
-
-    insert_request = get_service_creds().videos().insert(
-        part=','.join(meta.keys()),
-        body=meta,
-        media_body=media
-    )
-
-    r = resumable_upload(insert_request)
-    print(r)
-
-
-def resumable_upload(request):
-  response = None
-  error = None
-  retry = 0
-  while response is None:
-    try:
-      print('Uploading file...')
-      status, response = request.next_chunk()
-      if response is not None:
-        if 'id' in response:
-          print('Video id "%s" was successfully uploaded.' % response['id'])
-        else:
-          exit('The upload failed with an unexpected response: %s' % response)
-    except HttpError as e:
-      if  e.resp.status in RETRIABLE_STATUS_CODES:
-        error = 'A retriable HTTP error %d occurred:\n%s' % (e.resp.status,
-                                                             e.content)
-      else:
-        raise
-    except RETRIABLE_EXCEPTIONS as e:
-      error = 'A retriable error occurred: %s' % e
-
-    if error is not None:
-      print(error)
-      retry += 1
-      if retry > MAX_RETRIES:
-        exit('No longer attempting to retry.')
-
-      max_sleep = 2 ** retry
-      sleep_seconds = random.random() * max_sleep
-      print('Sleeping %f seconds and then retrying...' % sleep_seconds)
-      time.sleep(sleep_seconds)
-
-
-async def get_user_info():
-    r = get_service().userinfo().get().execute()
-    print(json.dumps(r))

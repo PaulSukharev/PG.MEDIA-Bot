@@ -6,6 +6,8 @@ from datetime import *
 import re
 import os
 
+import helpers.youtubeHelper as YoutubeHelper
+
 months = ["Unknown", "ЯНВАРЯ", "ФЕВРАЛЯ", "МАРТА", "АПРЕЛЯ", "МАЯ", "ИЮНЯ", "ИЮЛЯ", "АВГУСТА", "СЕНТЯБРЯ", "ОКТЯБРЯ", "НОЯБРЯ", "ДЕКАБРЯ"]
 
 class Picture():
@@ -14,6 +16,7 @@ class Picture():
     date: str
     preacher: str
     result_picture_path: str
+
 
 def get_picture(title_text):
     my_image = Image.open("src/img/trans.jpg")
@@ -38,6 +41,7 @@ def get_picture(title_text):
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
+
 def get_picture_trans(title, date):
     my_image = Image.open("src/img/trans.jpg")
     W, H = my_image.size
@@ -57,6 +61,7 @@ def get_picture_trans(title, date):
     picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
+
 
 def get_picture_ishod(preacher, title, date):
     my_image = Image.open("src/img/ishod.jpg")
@@ -78,6 +83,7 @@ def get_picture_ishod(preacher, title, date):
     picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
+
 
 def get_picture_preaching(preacher, title, date, picture_path, transparent):
     my_image = Image.open(picture_path)
@@ -136,20 +142,39 @@ def get_picture_preaching(preacher, title, date, picture_path, transparent):
     dark_im.save(picture, quality=100)
     return os.path.abspath(picture)
 
-def get_picture_from_link(link):
-    videoInfo = Video.getInfo(link, mode = ResultMode.json)
 
-    video_title = videoInfo['title'].split('|')
+def get_picture_from_link(link):
+    video_info = YoutubeHelper.get_video_info(link)['items'][0]
+    print(video_info)
+    video_info_snippet = video_info['snippet']
+    video_title = video_info_snippet['title'].split('|')
     title_text = video_title[0].strip()
+    if re.search(r'богослужение', title_text):
+        result = get_picture_trans(title_text, video_title[1].strip())
+        YoutubeHelper.upload_thumbnail(video_info['id'], result)
+        return result
+
+    if re.search(r'Исход', title_text):
+        result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), video_info_snippet['description'].strip())
+        YoutubeHelper.upload_thumbnail(video_info['id'], result)
+        return result
+
+    # if re.search(r'Церковь на Поклонной Горе', video_info['channel']['name']):
+    #     return None
+
+    return None
+
+
+def get_picture_from_title(title, date):
+    video_title = title.split('|')
+    title_text = video_title[0].strip()
+
     if re.search(r'богослужение', title_text):
         result = get_picture_trans(title_text, video_title[1].strip())
         return result
 
     if re.search(r'Исход', title_text):
-        result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), videoInfo['description'].strip())
+        result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), date.strip())
         return result
-
-    if re.search(r'Церковь на Поклонной Горе', videoInfo['channel']['name']):
-        return None
 
     return None
