@@ -4,39 +4,31 @@ from aiogram.dispatcher.filters import IDFilter
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from random import choice
 
+from misc import clear_commands, bot
+
 available_main_menu_commands = ['Photoshop', 'Premiere Pro']
 
-#сделать динамически заполняемым
-sticker_set = ['CAACAgIAAxkBAAEDSb1hklUxCay07jbXckLBdVzY3KhB4QAClQwAArc5oUi18T2XA385JSIE', 
-    'CAACAgIAAxkBAAEDSb9hklVM2KoXAkuMlcHXSWWcU9mFwgACgg8AAk0GqEggs7C059bnZCIE', 
-    'CAACAgIAAxkBAAEDScFhklVYbaz_QoJg499raR4H92bhqQAC3wwAAltfqEi9vSXUxV1VYSIE', 
-    'CAACAgIAAxkBAAEDScNhklVrDVcJ0ltbTHXDkIFu4Sp4MgACzA0AAjwuqUjiENzznhFZrCIE', 
-    'CAACAgIAAxkBAAEDScVhklV45jWJx8PeU-Piuzej4W3kYgACPAwAAu_NsEh9UhvEEnG91SIE', 
-    'CAACAgIAAxkBAAEDScdhklWXKJ4rBuDvyTSLHdLSmlMG9QACGw4AAtdIwEhN5ZDN1OKoVCIE',
-    'CAACAgIAAxkBAAEDSclhklW8o3TQQmN8CFsgtyTBUNvnOgACrg8AAhGPKUhfeicGyiZjmSIE',
-    'CAACAgIAAxkBAAEDScthklXHuVa7rsKzUEI5sHli8MsaowACew4AAud3IUi0NP49_OQ0JCIE',
-    'CAACAgIAAxkBAAEDSc1hklXTv2he61n7t7bBsft4AAH_HqQAAj4PAAIukChIVIymnQ101QciBA',
-    'CAACAgIAAxkBAAEDSc9hklXeG0kx-1cbZnLuX0WlEG-FNwACEQ4AArV1IEia5Up7rxLSjCIE',
-    'CAACAgIAAxkBAAEDSdFhklXud4Fi-dEWqu1uIBbNEKHvAwACwQ4AAvNAIUhYfOn0n92ZTyIE',
-    'CAACAgIAAxkBAAEDSdNhklX7u7ii3JAPgZ3-4Ih3vI3_ZwACJxEAAiuOIUguPPFjyjXa7iIE',
-    'CAACAgIAAxkBAAEDSdVhklYJk-D6Ev6PuW--6kiWgyz66AACShMAAvtsIEjkmPPoaP2h5iIE',
-    'CAACAgIAAxkBAAEDSddhklYWIg8SsIiwXYFKpiscyfkfygACJxAAAohiIEhsP2eKcp-AqSIE',
-    'CAACAgIAAxkBAAEDSdlhklYlEwMaCW57IsfDq_hHiNrZjAACGA8AAtXHaEigrdyWY6vp7CIE',
-    'CAACAgIAAxkBAAEDSdthklYyEQyFsAERKyqfhzrcoQi_3wACyBAAAjTNyUvP3n8EZ7yjFyIE',
-    'CAACAgIAAxkBAAEDSd1hklY8P_FUMFWmUgvbp-m3EG2ajQACRhEAAi_o0EuKhIDSFzLYRiIE',
-    'CAACAgIAAxkBAAEDSd9hklZH2wrf7Zp8EU9m9DP2d38Q_QACOBAAAnJWQEj8aeVTWa93USIE']
+nasty_id = 975613790
 
 class Common(StatesGroup):
     main_menu = State()
+    not_active = State()
 
 
 async def cmd_main_menu(message: types.Message, state: FSMContext):
+    if (message.chat.type != 'private'):
+        await Common.not_active.set()
+        await message.answer('Пасхалки пока нет', reply_markup=types.ReplyKeyboardRemove())
+        return
+
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).row()
     for command in available_main_menu_commands:
         keyboard.insert(command)
 
+    sticker_set = await bot.get_sticker_set('pg.media')
+    choice_sticker = choice(sticker_set['stickers'])
     await Common.main_menu.set()  
-    await message.answer_sticker(sticker=choice(sticker_set))  
+    await message.answer_sticker(sticker=choice_sticker['file_id'])  
     await message.answer(text=f'Привет привет, {message.chat.first_name}', reply_markup=keyboard)
 
 

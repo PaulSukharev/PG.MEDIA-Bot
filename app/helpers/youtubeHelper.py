@@ -139,7 +139,6 @@ def upload_thumbnail(video_id, file_path):
             videoId=video_id,
             media_body=media
         ).execute()
-
     else:
         print('нет картинки')
 

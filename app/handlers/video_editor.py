@@ -20,6 +20,7 @@ from asgiref.sync import sync_to_async
 
 available_video_editor_func = ['нарезать видео']
 available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141, 331292554]
+available_video_editor_users_ban = [530098876, 296118129, 413125921, 253799141, 331292554]
 
 class EditVideo(StatesGroup):
     waiting_for_video_etidor_func = State()
@@ -31,6 +32,10 @@ async def video_editor_start(message: types.Message):
     if message.chat.id not in available_video_editor_users:
         await message.answer("Дружок-пирожок, у тебя нет доступа к этому разделу 🤨")
         return
+
+    # if message.chat.id in available_video_editor_users_ban:
+    #     await message.answer("Дружок-пирожок, я отдыхаю, пока заставочки не сделаны к проповедям 🤨")
+    #     return
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     for name in available_video_editor_func:
@@ -59,6 +64,10 @@ async def cut_youtube_video(message: types.Message, state: FSMContext):
     timestamps = await VideoHelper.get_timestamps(message.text)
     if timestamps == []:
         await message.answer("У видео нет таймкодов. Добавьте таймкоды или отправьте другое видео.")
+        return
+
+    if len(timestamps) < 8 & message.chat.id in available_video_editor_users_ban:
+        await message.answer("Извини друг, но таймкоды сделаны некачественно. Попробуй переделать.")
         return
 
     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -146,7 +155,7 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
         print(upload_clips)
 
         for clip in upload_clips:
-            await misc.bot.send_message(chat_id=-557652012, text=f'На YouTube загружено видео: {clip[2]}')
+            await misc.bot.send_message(chat_id=-1001593792508, text=f'На YouTube загружено видео: {clip[2]}')
 
         await state.finish()
 

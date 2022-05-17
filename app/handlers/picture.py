@@ -7,9 +7,12 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import message, user
 from aiogram.utils.callback_data import CallbackData
 from datetime import datetime
+
+from matplotlib.pyplot import title
 from handlers.common import Common
 import helpers.pictureHelper as PictureHelper
 import helpers.videoHelper as VideoHelper
+import helpers.youtubeHelper as YoutubeHelper
 import requests
 import os
 from misc import bot
@@ -33,6 +36,7 @@ class MakePicture(StatesGroup):
     waiting_for_preacing_description = State()
     waiting_for_preacing_date = State()
     waiting_for_preacing_edit = State()
+    waiting_for_picture_photo_from_link = State()
 
 async def picture_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -66,7 +70,7 @@ async def picture_type_chosen(message: types.Message, state: FSMContext):
         await MakePicture.waiting_for_picture_trans.set()
     
     if message.text.lower() == available_picture_types[1]:
-        await message.answer("Скинь ссылку на видео(трансляция или исход)", reply_markup=types.ReplyKeyboardRemove())
+        await message.answer("Скинь ссылку на видео(трансляция, исход или проповедь)", reply_markup=types.ReplyKeyboardRemove())
         await MakePicture.waiting_for_picture_link.set()
 
     if message.text.lower() == available_picture_types[2]:
@@ -106,7 +110,23 @@ async def picture_from_link(message: types.Message, state: FSMContext):
         await message.answer("Снова ломаешь?!")
         return
     
-    picture_path = PictureHelper.get_picture_from_link(message.text)
+    picture_info = PictureHelper.get_picture_info(message.text)
+    print(picture_info)
+    picture_type = picture_info[0]
+
+    picture_path = None
+
+    if (picture_type != 2):
+        picture_path = PictureHelper.get_picture_from_link(message.text)
+    else:
+        await state.update_data(preacher = picture_info[1])
+        await state.update_data(title = picture_info[2])
+        await state.update_data(date = picture_info[3])
+        await state.update_data(video_id = picture_info[4])
+        await state.update_data(transparent = 0.5)
+        await MakePicture.waiting_for_picture_photo_from_link.set()
+        await message.answer("Скинь картинку для фона (как файл)", reply_markup=types.ReplyKeyboardRemove())
+        return
 
     if picture_path:
         picture = open(picture_path, 'rb')
@@ -117,8 +137,33 @@ async def picture_from_link(message: types.Message, state: FSMContext):
         await message.answer("Не ломай!")
         return
 
+async def picture_preaching_from_link(message, state: FSMContext):
+    print(100)
+    file_info = await bot.get_file(message.document.file_id)
+    downloaded_file = await bot.download_file(file_info.file_path)
+
+    temp_dir = 'preaching_' + datetime.now().strftime("%Y%m%d-%H%M%S")
+    os.makedirs(f'temp/{temp_dir}')
+
+    picture_path = f'temp/{temp_dir}/{message.document.file_name}'
+    print(picture_path)
+    with open(picture_path, 'wb') as new_file:
+        new_file.write(downloaded_file.getvalue())
+
+    await state.update_data(picture_path = picture_path)
+    user_data = await state.get_data()
+    title = user_data['title']
+    preacher = user_data['preacher']
+    date = user_data['date']
+    picture_path = user_data['picture_path']
+    transparent = user_data['transparent']
+
+    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+    picture = open(picture_path, 'rb')
+    await MakePicture.waiting_for_preacing_edit.set()
+    await message.answer_photo(picture, reply_markup=inline_keyboard_picture_edit)
+
 async def picture_preaching(message, state: FSMContext):
-    print('tut')
     file_info = await bot.get_file(message.document.file_id)
     downloaded_file = await bot.download_file(file_info.file_path)
 
@@ -143,7 +188,7 @@ async def picture_preaching_date(message: types.Message, state: FSMContext):
     await state.update_data(preacher = message.text)
     await state.update_data(transparent = 0.5)
     await MakePicture.waiting_for_preacing_date.set()
-    await message.answer("Введите дату проповеди в формате: 00.00.0000")
+    await message.answer("Введите дату проповеди в формате: 01 января 2020")
 
 async def picture_preacting_make_and_send(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
@@ -173,9 +218,23 @@ async def picture_preacting_edit(callback_query: types.CallbackQuery, state: FSM
     match callback_query.data:
         case 'file':
             picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+            PictureHelper.compress_under_size(2000000, picture_path)
             picture = open(picture_path, 'rb')
             await callback_query.message.delete()
             await callback_query.message.answer_document(picture)
+            await state.finish()
+            temp_dir = picture_path.rsplit('\\', 1)[0]
+            shutil.rmtree(temp_dir)
+            return
+
+        case 'youtube':
+            picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+            PictureHelper.compress_under_size(2000000, picture_path)
+            video_id = user_data['video_id']
+            if picture_path:
+                YoutubeHelper.upload_thumbnail(video_id, picture_path)
+            await callback_query.message.delete()
+            await callback_query.message.answer('Картинка загружена на YouTube')
             await state.finish()
             temp_dir = picture_path.rsplit('\\', 1)[0]
             shutil.rmtree(temp_dir)
@@ -277,6 +336,7 @@ def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_preaching_title, state=MakePicture.waiting_for_preacing_title)
     dp.register_message_handler(picture_preaching_date, state=MakePicture.waiting_for_preacing_description)
     dp.register_message_handler(picture_preacting_make_and_send, state=MakePicture.waiting_for_preacing_date)
+    dp.register_message_handler(picture_preaching_from_link, content_types=['document'], state=MakePicture.waiting_for_picture_photo_from_link)
     dp.register_callback_query_handler(picture_preacting_edit, state=MakePicture.waiting_for_preacing_edit)
     # dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
     # dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)

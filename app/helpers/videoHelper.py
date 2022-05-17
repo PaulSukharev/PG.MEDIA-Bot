@@ -40,6 +40,7 @@ async def get_timestamps(link: str):
 async def check_video_1080p(url: str):
     youtube = pytube.YouTube(url)
     streams = youtube.streams
+    print(streams)
 
     if streams == None:
         return None
@@ -103,7 +104,8 @@ async def upload_videos_to_youtube(link: str, videos: list):
     description = f'{video_date.day} {months[video_date.month]} {video_date.year}'
 
     for video in videos:
-        await YoutubeHelper.upload_video_to_youtube(video, description)
+        res = await YoutubeHelper.upload_video_to_youtube(video, description)
+        print(res)
     
     temp_dir = (videos[0])[1].rsplit('/', 1)[0]
     shutil.rmtree(temp_dir)

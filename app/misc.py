@@ -16,6 +16,12 @@ async def set_commands(bot: Bot):
     ]
     await bot.set_my_commands(commands)
 
+async def clear_commands():
+    commands = [
+        BotCommand(command="/main_menu", description="Вернуться в гланое меню")
+    ]
+    await bot.delete_my_commands()
+
 async def start():
     from handlers.picture import register_handlers_pictures
     from handlers.video_editor import register_handlers_video_editor
