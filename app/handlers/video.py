@@ -19,8 +19,8 @@ import shutil
 from asgiref.sync import sync_to_async
 
 available_video_editor_func = ['нарезать видео']
-available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141, 331292554]
-available_video_editor_users_ban = [530098876, 296118129, 413125921, 253799141, 331292554]
+available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141, 331292554, 789249890]
+available_video_editor_users_ban = [530098876, 296118129, 413125921, 253799141, 331292554, 789249890]
 
 class EditVideo(StatesGroup):
     waiting_for_video_etidor_func = State()
@@ -28,14 +28,10 @@ class EditVideo(StatesGroup):
     waiting_for_cut_video_choose_timestamps = State()
     waiting_for_cut_video_choose_cut_or_upload = State()
 
-async def video_editor_start(message: types.Message):
+async def video_start(message: types.Message):
     if message.chat.id not in available_video_editor_users:
         await message.answer("Дружок-пирожок, у тебя нет доступа к этому разделу 🤨")
         return
-
-    # if message.chat.id in available_video_editor_users_ban:
-    #     await message.answer("Дружок-пирожок, я отдыхаю, пока заставочки не сделаны к проповедям 🤨")
-    #     return
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     for name in available_video_editor_func:
@@ -159,8 +155,8 @@ async def edit_trans_finish_step(message: types.Message, state: FSMContext):
 
         await state.finish()
 
-def register_handlers_video_editor(dp: Dispatcher):
-    dp.register_message_handler(video_editor_start, Text(equals="premiere pro", ignore_case=True), state=Common.main_menu)
+def register_handlers_video(dp: Dispatcher):
+    dp.register_message_handler(video_start, Text(equals="premiere pro", ignore_case=True), state=Common.main_menu)
     dp.register_message_handler(video_editor_choose_func, state=EditVideo.waiting_for_video_etidor_func)
     dp.register_message_handler(cut_youtube_video, state=EditVideo.waiting_for_cut_video_link)
     dp.register_message_handler(edit_trans_finish_step, state=EditVideo.waiting_for_cut_video_choose_cut_or_upload)

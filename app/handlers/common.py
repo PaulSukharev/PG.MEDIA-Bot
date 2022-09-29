@@ -7,6 +7,7 @@ from random import choice
 from misc import clear_commands, bot
 
 available_main_menu_commands = ['Photoshop', 'Premiere Pro']
+# available_main_menu_commands = ['я обиделся']
 
 nasty_id = 975613790
 

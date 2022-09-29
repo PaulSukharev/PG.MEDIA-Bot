@@ -24,7 +24,7 @@ async def clear_commands():
 
 async def start():
     from handlers.picture import register_handlers_pictures
-    from handlers.video_editor import register_handlers_video_editor
+    from handlers.video import register_handlers_video
     from handlers.common import register_handlers_common
 
     # Настройка логирования в stdout
@@ -46,7 +46,7 @@ async def start():
     # Регистрация хэндлеров
     register_handlers_common(dp, config.tg_bot.admin_id)
     register_handlers_pictures(dp)
-    register_handlers_video_editor(dp)
+    register_handlers_video(dp)
 
     # Установка команд бота
     await set_commands(bot)

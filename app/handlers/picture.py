@@ -70,7 +70,7 @@ async def picture_type_chosen(message: types.Message, state: FSMContext):
         await MakePicture.waiting_for_picture_trans.set()
     
     if message.text.lower() == available_picture_types[1]:
-        await message.answer("Скинь ссылку на видео(трансляция, исход или проповедь)", reply_markup=types.ReplyKeyboardRemove())
+        await message.answer("Скинь ссылку на видео(трансляция или проповедь)", reply_markup=types.ReplyKeyboardRemove())
         await MakePicture.waiting_for_picture_link.set()
 
     if message.text.lower() == available_picture_types[2]:
@@ -190,6 +190,19 @@ async def picture_preaching_date(message: types.Message, state: FSMContext):
     await MakePicture.waiting_for_preacing_date.set()
     await message.answer("Введите дату проповеди в формате: 01 января 2020")
 
+async def picture_preaching_edit_title(message: types.Message, state: FSMContext):
+    await state.update_data(title = message.text)
+    user_data = await state.get_data()
+    title = user_data['title']
+    preacher = user_data['preacher']
+    date = user_data['date']
+    picture_path = user_data['picture_path']
+    transparent = user_data['transparent']
+
+    picture_path = PictureHelper.get_picture_preaching(preacher, title, date, picture_path, transparent)
+    picture = open(picture_path, 'rb')
+    await message.answer_photo(picture, reply_markup=inline_keyboard_picture_edit)
+
 async def picture_preacting_make_and_send(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     title = user_data['title']
@@ -239,6 +252,11 @@ async def picture_preacting_edit(callback_query: types.CallbackQuery, state: FSM
             temp_dir = picture_path.rsplit('\\', 1)[0]
             shutil.rmtree(temp_dir)
             return
+
+        case 'title':
+            await callback_query.message.delete()
+            await callback_query.message.answer(title)
+            await callback_query.message.answer('Отправьте тему проповеди')
 
         case 'dark':
             transparent = transparent -  0.2
@@ -337,6 +355,7 @@ def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_preaching_date, state=MakePicture.waiting_for_preacing_description)
     dp.register_message_handler(picture_preacting_make_and_send, state=MakePicture.waiting_for_preacing_date)
     dp.register_message_handler(picture_preaching_from_link, content_types=['document'], state=MakePicture.waiting_for_picture_photo_from_link)
+    dp.register_message_handler(picture_preaching_edit_title, state=MakePicture.waiting_for_preacing_edit)
     dp.register_callback_query_handler(picture_preacting_edit, state=MakePicture.waiting_for_preacing_edit)
     # dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
     # dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)

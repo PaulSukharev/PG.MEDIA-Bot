@@ -63,28 +63,12 @@ def get_picture_trans(title, date):
     my_image.save(picture, quality=100)
     return os.path.abspath(picture)
 
+def check_title_length(title):
+    title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 95, encoding='UTF-8')
+    title = title.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
+    w, h = title_font.getsize_multiline(title, spacing=50)
 
-def get_picture_ishod(preacher, title, date):
-    my_image = Image.open("src/img/ishod.jpg")
-    W, H = my_image.size
-    image_editable = ImageDraw.Draw(my_image)
-    title_font = ImageFont.truetype('src/fonts/SolomonSans-Medium.ttf', 75, encoding='UTF-8')
-
-    preacher = preacher.encode().replace(b'\xb8\xcc\x86', b'\xb9').decode()
-    print(preacher)
-    w, h = title_font.getsize(preacher)
-    image_editable.text(((W-w)/2, 225), preacher, (255, 255, 255), font=title_font)
-
-    w, h = title_font.getsize(date)
-    image_editable.text(((W-w)/2, 1080), date, (255, 255, 255), font=title_font)
-
-    title_font = ImageFont.truetype('src/fonts/SolomonSans-SemiBold.ttf', 150, encoding='UTF-8')
-    w, h = title_font.getsize(title)
-    image_editable.text(((W-w)/2, (H-h)/2), title, (255, 255, 255), font=title_font)
-    picture = f'{title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.jpg'
-    my_image.save(picture, quality=100)
-    return os.path.abspath(picture)
-
+    return w < 1800
 
 def get_picture_preaching(preacher, title, date, picture_path, transparent):
     my_image = Image.open(picture_path)
@@ -135,7 +119,7 @@ def get_picture_preaching(preacher, title, date, picture_path, transparent):
     image_editable.text(((W-w)/2, 850), date, (255, 255, 255), font=preacher_font)
 
     temp_dir = picture_path.rsplit('/', 1)[0]
-    pict_title = title.split('\n')[0]
+    pict_title = picture_path.rsplit('/', 1)[1].split('.')[0]
     picture = f'{temp_dir}/{pict_title} {datetime.now().strftime("%Y%m%d-%H%M%S")}.png'
 
     print(picture)
@@ -144,6 +128,10 @@ def get_picture_preaching(preacher, title, date, picture_path, transparent):
 
     return os.path.abspath(picture)
 
+def get_picture_luke(preacher, title, date):
+    luke_path = "src/img/luke.jpg"
+    result = get_picture_preaching(preacher, title, date, luke_path, 0.7)
+    return result
 
 def get_picture_from_link(link):
     video_info = YoutubeHelper.get_video_info(link)['items'][0]
@@ -156,21 +144,6 @@ def get_picture_from_link(link):
 
     if picture_path:
         YoutubeHelper.upload_thumbnail(video_info['id'], picture_path)
-    
-    # title_text = video_title[0].strip()
-
-    # if re.search(r'богослужение', title_text):
-    #     result = get_picture_trans(title_text, video_title[1].strip())
-    #     YoutubeHelper.upload_thumbnail(video_info['id'], result)
-    #     return result
-
-    # if re.search(r'Исход', title_text):
-    #     result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), video_info_snippet['description'].strip())
-    #     YoutubeHelper.upload_thumbnail(video_info['id'], result)
-    #     return result
-
-    # if re.search(r'Церковь на Поклонной Горе', video_info['channel']['name']):
-    #     return None
 
     return picture_path
 
@@ -183,8 +156,8 @@ def get_picture_from_title(title, date):
         result = get_picture_trans(title_text, video_title[1].strip())
         return result
 
-    if re.search(r'Исход', title_text):
-        result = get_picture_ishod(video_title[1].strip(), video_title[0].strip(), date.strip())
+    if re.search(r'Луки', title_text):
+        result = get_picture_luke(video_title[1].strip(), video_title[0].strip(), date.strip())
         return result
     
     result = get_picture_preaching(video_title[1].strip(), video_title[0].strip(), date.strip())
@@ -193,13 +166,13 @@ def get_picture_from_title(title, date):
 
 def get_picture_type(title: str):
     # 0 - трансляция
-    # 1 - исход
+    # 1 - луки
     # 2 - выбрать вручную
 
     if re.search(r'богослужение', title):
         return 0
     
-    if re.search(r'Исход', title):
+    if re.search(r'Луки', title):
         return 1
 
     return 2
