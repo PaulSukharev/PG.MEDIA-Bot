@@ -5,6 +5,7 @@ from aiogram.types import BotCommand
 from config_reader import load_config
 
 logger = logging.getLogger(__name__)
+
 config = load_config("config/bot.ini")
 
 bot = Bot(token=config.tg_bot.token)
@@ -44,7 +45,7 @@ async def start():
     dp = Dispatcher(bot, storage=MemoryStorage())
 
     # Регистрация хэндлеров
-    register_handlers_common(dp, config.tg_bot.admin_id)
+    register_handlers_common(dp)
     register_handlers_pictures(dp)
     register_handlers_video(dp)
 

@@ -6,8 +6,8 @@ import http.client as httplib
 from urllib.parse import parse_qs, urlparse
 import httplib2
 
-from youtubesearchpython import *
-from moviepy.editor import *
+# from youtubesearchpython import *
+# from moviepy.editor import *
 
 
 from google.auth.transport.requests import Request

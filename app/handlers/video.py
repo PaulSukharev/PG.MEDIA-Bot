@@ -16,7 +16,6 @@ import helpers.videoHelper as VideoHelper
 import requests
 import os
 import shutil
-from asgiref.sync import sync_to_async
 
 available_video_editor_func = ['нарезать видео']
 available_video_editor_users = [530098876, 296118129, 413125921, 341194216, 253799141, 331292554, 789249890]

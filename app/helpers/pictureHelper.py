@@ -1,7 +1,4 @@
-from turtle import width
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-from sympy import factor
-from youtubesearchpython import *
 from datetime import *
 import re
 import os

@@ -39,7 +39,7 @@ async def secret_command(message: types.Message):
     await message.answer("Поздравляю! Эта команда доступна только администратору бота.")
 
 
-def register_handlers_common(dp: Dispatcher, admin_id: int):
+def register_handlers_common(dp: Dispatcher):
     dp.register_message_handler(cmd_main_menu, commands="start", state="*")
     dp.register_message_handler(cmd_main_menu, commands="main_menu", state="*")
-    dp.register_message_handler(secret_command, IDFilter(user_id=admin_id), commands="abracadabra")
+    # dp.register_message_handler(secret_command, IDFilter(user_id=admin_id), commands="abracadabra")
