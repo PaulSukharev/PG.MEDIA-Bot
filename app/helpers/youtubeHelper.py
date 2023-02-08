@@ -89,7 +89,7 @@ def get_video_info(link):
     if 'youtube' in query.hostname:
         if query.path == '/watch':
             video_id = parse_qs(query.query)['v'][0]
-        elif query.path.startswith(('/embed/', '/v/')):
+        elif query.path.startswith(('/embed/', '/v/', '/live/')):
             video_id = query.path.split('/')[2]
     elif 'youtu.be' in query.hostname:
         print(query.path[1:])
