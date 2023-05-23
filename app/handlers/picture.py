@@ -270,79 +270,6 @@ async def picture_preacting_edit(callback_query: types.CallbackQuery, state: FSM
     picture = open(picture_path, 'rb')
 
     await callback_query.message.edit_media(media = types.InputMediaPhoto(picture), reply_markup = inline_keyboard_picture_edit)
-            
-
-# async def edit_trans(message: types.Message, state: FSMContext):
-#     if "Video unavailable" in requests.get(message.text).text:
-#         await message.answer("Снова ломаешь?!")
-#         return
-
-#     res = VideoHelper.get_timestamps(message.text)
-#     await state.update_data(timestamps=res, add_clips=[], link=message.text)
-#     await MakePicture.waiting_for_trans_clips.set()
-#     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#     for name in res:
-#         print(name)
-#         keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + str(name[2]), callback_data = name[0]))
-#     keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
-#     await message.answer("Выберите что-нибудь:", reply_markup=keyboard)
-
-# async def edit_trans_choose_clips(callback_query: types.CallbackQuery, state: FSMContext):
-#     timestamps = (await state.get_data())['timestamps']
-#     add_clips = (await state.get_data())['add_clips']
-#     print(add_clips)
-
-#     if callback_query.data == 'Done':
-#         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-#         keyboard.add("Нарезать видео")
-#         await MakePicture.waiting_for_edit_video.set()
-#         await callback_query.message.delete()
-#         await callback_query.message.answer("Что делать?", reply_markup=keyboard)
-#         return
-
-#     if callback_query.data not in add_clips:
-#         add_clips.append(callback_query.data)
-#     else:
-#         add_clips.remove(callback_query.data)
-    
-#     keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-#     for name in timestamps:
-#         if name[0] in add_clips:
-#             keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9C\x85'.decode() + name[2], callback_data = name[0]))
-#         else:
-#             keyboard.add(types.InlineKeyboardButton(text = b'\xE2\x9D\x8C'.decode() + name[2], callback_data = name[0]))
-#     keyboard.add(types.InlineKeyboardButton(text="Готово", callback_data="Done"))
-#     await state.update_data(add_clips = add_clips)
-#     await callback_query.message.edit_reply_markup(reply_markup=keyboard)
-
-# async def edit_trans_finish_step(message: types.Message, state: FSMContext):
-#     if message.text != 'Нарезать видео':
-#         await message.answer("Снова ломаешь?!")
-#         return
-#     await message.answer(text='Пожалуйста ожидайте', reply_markup=types.ReplyKeyboardRemove())
-#     user_data = await state.get_data()
-#     add_clips = user_data['add_clips']
-#     timestamps = user_data['timestamps']
-
-#     if add_clips == []:
-#         await message.answer("Хватит ломать бота! Иначе добавим тебя в черный список!")
-#         return
-
-#     cut_clips = []
-#     for timestamp in timestamps:
-#         if timestamp[1] in add_clips:
-#             cut_clips.append(timestamp)
-
-#     videos = VideoHelper.cut_video(user_data['link'], cut_clips)
-
-#     temp_dir = videos[0].rsplit('/', 1)[0].strip()
-
-#     print(videos)
-#     for video_path in videos:
-#         video = open(video_path, 'rb')
-#         await message.answer_document(video)
-#     os.remove(temp_dir)
-#     await state.finish()
 
 
 def register_handlers_pictures(dp: Dispatcher):
@@ -357,7 +284,3 @@ def register_handlers_pictures(dp: Dispatcher):
     dp.register_message_handler(picture_preaching_from_link, content_types=['document'], state=MakePicture.waiting_for_picture_photo_from_link)
     dp.register_message_handler(picture_preaching_edit_title, state=MakePicture.waiting_for_preacing_edit)
     dp.register_callback_query_handler(picture_preacting_edit, state=MakePicture.waiting_for_preacing_edit)
-    # dp.register_message_handler(edit_trans, state=MakePicture.waiting_for_trans_link)
-    # dp.register_message_handler(edit_trans_finish_step, Text(equals="нарезать видео", ignore_case=True), state=MakePicture.waiting_for_edit_video)
-    # dp.register_message_handler(edit_trans_finish_step, commands="Загрузить на ютуб", state=MakePicture.waiting_for_trans_clips)
-    # dp.register_callback_query_handler(edit_trans_choose_clips, state=MakePicture.waiting_for_trans_clips)

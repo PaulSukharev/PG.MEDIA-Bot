@@ -2,19 +2,24 @@ import re
 import ffmpeg
 import shutil
 import pytube
-# from youtubesearchpython import *
 from moviepy.editor import *
 import datetime
 import helpers.youtubeHelper as YoutubeHelper
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+import isodate
 
 months = ["unknown", "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
 
 
 async def get_timestamps(link: str):
-    youtube = pytube.YouTube(link)
-    description = youtube.description.strip().encode()
-    video_length = str(datetime.timedelta(seconds=youtube.length))
+    video_info = YoutubeHelper.get_video_info(link)['items'][0]
+    youtube = video_info['snippet']
+
+    print(youtube)
+    description = youtube['description'].strip().encode()
+    duration = isodate.parse_duration(video_info['contentDetails']['duration'])
+    print(duration)
+    video_length = str(datetime.timedelta(seconds=duration.total_seconds()))
 
     times = []
     for st1 in description.split(b'\n'):
@@ -96,14 +101,19 @@ async def cut_video_and_upload(link: str, clips: list):
 
 async def upload_videos_to_youtube(link: str, videos: list):
     print('start upload videos', flush=True)
-    youtube = pytube.YouTube(link)
-    video_date = youtube.publish_date
+    video_info = YoutubeHelper.get_video_info(link)['items'][0]
+    youtube = video_info['snippet']
+
+    video_date = youtube['publishedAt']
     description = f'{video_date.day} {months[video_date.month]} {video_date.year}'
 
     for video in videos:
         res = await YoutubeHelper.upload_video_to_youtube(video, description)
         print(res, flush=True)
     
+    print((videos[0])[1]);
     temp_dir = (videos[0])[1].rsplit('/', 1)[0]
+    print(temp_dir)
     shutil.rmtree(temp_dir)
+    shutil.rmtree('temp')
     print('end upload videos')
