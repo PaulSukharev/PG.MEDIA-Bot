@@ -3,7 +3,8 @@ import ffmpeg
 import shutil
 import pytube
 from moviepy.editor import *
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import helpers.youtubeHelper as YoutubeHelper
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import isodate
@@ -19,7 +20,7 @@ async def get_timestamps(link: str):
     description = youtube['description'].strip().encode()
     duration = isodate.parse_duration(video_info['contentDetails']['duration'])
     print(duration)
-    video_length = str(datetime.timedelta(seconds=duration.total_seconds()))
+    video_length = str(timedelta(seconds=duration.total_seconds()))
 
     times = []
     for st1 in description.split(b'\n'):
@@ -55,7 +56,7 @@ async def download_video(url: str):
     youtube = pytube.YouTube(url)
     print(youtube, flush=True)
 
-    temp_dir = 'cut_video_temp' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    temp_dir = 'cut_video_temp' + datetime.now().strftime("%Y%m%d-%H%M%S")
     print(temp_dir, flush=True)
 
     print(youtube.streams.filter(res='1080p', file_extension='mp4'), flush=True)
@@ -73,10 +74,10 @@ async def download_video(url: str):
 
 async def parse_timestamp_to_seconds(time: str):
     if len(time.split(':')) == 2:
-        t = datetime.datetime.strptime(time, '%M:%S')
+        t = datetime.strptime(time, '%M:%S')
         return t.minute * 60 + t.second
     if len(time.split(':')) == 3:
-        t = datetime.datetime.strptime(time, '%H:%M:%S')
+        t = datetime.strptime(time, '%H:%M:%S')
         return t.hour * 3600 + t.minute * 60 + t.second
 
 async def cut_video(link: str, clips: list):
@@ -104,7 +105,7 @@ async def upload_videos_to_youtube(link: str, videos: list):
     video_info = YoutubeHelper.get_video_info(link)['items'][0]
     youtube = video_info['snippet']
 
-    video_date = youtube['publishedAt']
+    video_date = datetime.fromisoformat(youtube['publishedAt'])
     description = f'{video_date.day} {months[video_date.month]} {video_date.year}'
 
     for video in videos:
