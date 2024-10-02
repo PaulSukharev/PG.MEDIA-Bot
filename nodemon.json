@@ -1,0 +1,6 @@
+{
+    "watch": ["src"],
+    "ext": "ts,json",
+    "ignore": [],
+    "exec": "npx ts-node -r tsconfig-paths/register ./src/index.ts"
+  }
