@@ -15,6 +15,8 @@ scene.enter(async (ctx) => {
 
     if (ctx.session.video.timestamps?.length > 0) {
         keyboard.push(['вырезать отрывок']);
+    } else {
+        keyboard.push(['скачать аудио']);
     }
 
     if (keyboard.length > 0) {
@@ -54,6 +56,9 @@ scene.on('message', async (ctx) => {
 
             addMsgToRemoveList(msg.message_id, ctx);
 
+            break;
+        case 'скачать аудио':
+            await ctx.scene.enter('youtube.audio');
             break;
         default:
             break;
