@@ -1,7 +1,7 @@
 import ytdl, { getInfo, videoInfo } from '@distube/ytdl-core';
 import fs from 'fs';
 import readline from 'readline';
-import { Observable, concat, first, from, map, of, switchMap, zip } from 'rxjs'
+import { Observable, concat, first, from, map, merge, mergeAll, of, switchMap, tap, zip } from 'rxjs'
 import path from 'path';
 
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
@@ -152,8 +152,8 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
                 const audioFormat = _getAudioFormat(videoInfo);
                 const audioOutput = path.resolve(_tempDir, `${id}_audio.mp4`);
 
-                const video$ = _download(url, videoFormat, videoOutput);
-                const audio$ = _download(url, audioFormat, audioOutput);
+                const video$ = from(_download(url, videoFormat, videoOutput));
+                const audio$ = from(_download(url, audioFormat, audioOutput));
 
                 return zip(video$, audio$)
                     .pipe(
@@ -169,6 +169,12 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
                 }
                 const file = `${_tempDir}/${timestamp.id}_${timestamp.start}.mp4`
                 return uploadToYoutube(file, timestamp.title, timestamp.description);
+            }),
+            tap(() => {
+                const pathFile = path.resolve(_tempDir, `${timestamps[0].id}.mp4`);
+                if (fs.existsSync(pathFile)) {
+                    fs.unlinkSync(pathFile);
+                }
             })
         );
 }
@@ -239,7 +245,17 @@ export async function uploadToYoutube(file: string, title: string, description?:
         media: {
             body: fs.createReadStream(file),
         }
-    })
+    }, function(err, response) {
+        if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+        }
+        if (err) {
+          console.log('The API returned an error: ' + err);
+          return;
+        }
+    
+        console.log(`Video uploaded: ${title}`);
+    });
 }
 
 async function uploadThumbnail(id: string, file: string) {
@@ -270,6 +286,15 @@ function _mergeVideoAndAudio(video: any, audio: any, output: string) {
         command.save(output);
 
         command.on('end', () => {
+
+            if (fs.existsSync(audio)) {
+                fs.unlinkSync(audio);
+            }
+
+            if (fs.existsSync(video)) {
+                fs.unlinkSync(video);
+            }
+
             resolve(true);
         });
 
@@ -287,7 +312,6 @@ function cut(id: string, timestamps: Timestamp[]) {
     }
 
     const timestamps$ = timestamps.map(x => from(_cutTimestamp(id, x)));
-
     return concat(...timestamps$);
 }
 
@@ -324,7 +348,6 @@ function _cutTimestamp(id: string, timestamp: Timestamp): Promise<Timestamp | un
 
 function _getVideoFormat(videoInfo: ytdl.videoInfo) {
     const formats = videoInfo.formats.filter(x => x.qualityLabel?.includes('1080'));
-
     if (formats == undefined || formats.length == 0) {
         throw new Error("Not found 1080p quality");
     }
@@ -334,7 +357,6 @@ function _getVideoFormat(videoInfo: ytdl.videoInfo) {
 
 function _getAudioFormat(videoInfo: ytdl.videoInfo) {
     const format = ytdl.chooseFormat(videoInfo.formats, { filter: 'audioonly' });
-
     if (format == undefined) {
         throw new Error("Not found audio");
     }
@@ -368,7 +390,12 @@ function _setAudioTags(audioOutput: string, videoInfo: ytdl.videoInfo): Promise<
 
         command.saveToFile(audioMp3);
 
-        command.on('end', () => resolve(audioMp3));
+        command.on('end', () => {
+            if (fs.existsSync(audioOutput)) {
+                fs.unlinkSync(audioOutput);
+            }
+            resolve(audioMp3);
+        });
         command.run();
     })
 }
