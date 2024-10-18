@@ -14,5 +14,14 @@ export interface Video {
     title: string;
     description: string | undefined | null;
     date: Moment;
-    timestamps: Timestamp[]
+    timestamps: Timestamp[],
+    picture?: Picture;
+}
+
+export interface Picture {
+    imagePath?: string,
+    transparent?: number,
+    title?: string,
+    preacher?: string,
+    date?: Moment | string
 }

@@ -18,7 +18,11 @@ scene.enter(async (ctx) => {
     }
 
     downloadAudio(ctx.session.video?.id!).subscribe((res) => {
-        ctx.sendDocument(Input.fromLocalFile(res));
+        ctx.sendDocument(Input.fromLocalFile(res)).then(() => {
+            if (fs.existsSync(res)) {
+                fs.unlinkSync(res);
+            }
+        });
         ctx.scene.enter('start');
     });
 });

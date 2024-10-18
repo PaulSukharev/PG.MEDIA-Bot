@@ -9,7 +9,8 @@ import { Timestamp } from "@models/video";
 const scene = new BaseScene<IContextBot>('youtube');
 
 scene.enter(async (ctx) => {
-    ctx.session.video = await getVideo(ctx.text!)
+    ctx.session.video = await getVideo(ctx.text!);
+    console.log(ctx.session);
 
     const keyboard = [];
 
