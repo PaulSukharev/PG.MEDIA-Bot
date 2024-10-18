@@ -2,11 +2,13 @@ import { Telegraf, session } from "telegraf";
 import * as dotenv from 'dotenv'
 import stage from "./scences";
 import { IContextBot } from "./models/context.interface";
-import { getPictureTypes, uploadToYoutube } from "@services/youtube.service";
-import { drawLivePicture } from "@services/drawing.service";
-import { addMsgToRemoveList } from "utils/processMessages";
+import path from "path";
+import { removeAllFilesSync } from "utils";
 
 dotenv.config()
+
+const _tempDir = path.resolve(__dirname, '../temp/');
+removeAllFilesSync(_tempDir);
 
 const { BOT_TOKEN } = process.env;
 if (!BOT_TOKEN) throw new Error('"BOT_TOKEN" env var is required!');

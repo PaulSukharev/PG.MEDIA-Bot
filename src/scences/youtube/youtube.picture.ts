@@ -10,9 +10,6 @@ scene.enter(async (ctx) => {
     addMsgToRemoveList(ctx.message?.message_id, ctx);
     removeTempMessages(ctx);
 
-    console.log('youtube.picture');
-    console.log(ctx.session);
-
     if (ctx.session.video == undefined) {
         await ctx.scene.enter('start');
         return;
@@ -31,11 +28,6 @@ scene.enter(async (ctx) => {
     });
 
     addMsgToRemoveList(msg.message_id, ctx);
-
-    // console.log(ctx.session.video?.id!);
-    // const res = await createLivePicture(ctx.session.video?.id!);
-    // await ctx.sendMessage(ctx.session.video?.title +  (res ? ' ✅' : ' ❌'));
-    // await ctx.scene.enter('start');
 });
 
 scene.on('message', async (ctx) => {

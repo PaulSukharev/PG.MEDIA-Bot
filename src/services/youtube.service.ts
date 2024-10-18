@@ -258,7 +258,7 @@ export async function uploadToYoutube(file: string, title: string, description?:
     });
 }
 
-async function uploadThumbnail(id: string, file: string) {
+export async function uploadThumbnail(id: string, file: string) {
     const auth = GoogleService.getOauth2();
 
     const youtube = google.youtube({
@@ -477,5 +477,6 @@ module.exports = {
     downloadAudio,
     downloadAndUploadVideo,
     uploadToYoutube,
+    uploadThumbnail,
     createLivePicture
 }

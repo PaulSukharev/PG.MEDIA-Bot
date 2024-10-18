@@ -8,14 +8,8 @@ const start = new BaseScene<IContextBot>('start');
 start.start(ctx => ctx.scene.enter('start'));
 
 start.enter(async (ctx) => {
-    if (ctx.scene.current?.id !== 'start' && ctx.scene.current?.id !== undefined) {
-        return;
-    }
     addMsgToRemoveList(ctx.message?.message_id, ctx);
-
     removeTempMessages(ctx);
-
-    console.log('start');
 
     ctx.session.customText = undefined;
     ctx.session.timestamps = undefined;
@@ -35,15 +29,15 @@ start.enter(async (ctx) => {
         description: '💾 старт'
     }]);
 
-    // try {
-    //     const res = await isYouTubeVideo(ctx.text);
-    //     if (res) {
-    //         await ctx.scene.enter('youtube');
-    //         return;
-    //     }
-    // } catch (error) {
-    //     console.log(error);
-    // }
+    try {
+        const res = await isYouTubeVideo(ctx.text);
+        if (res) {
+            await ctx.scene.enter('youtube');
+            return;
+        }
+    } catch (error) {
+        console.log(error);
+    }
 });
 
 start.on('message', async (ctx) => {

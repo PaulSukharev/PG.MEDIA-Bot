@@ -10,7 +10,6 @@ const scene = new BaseScene<IContextBot>('youtube');
 
 scene.enter(async (ctx) => {
     ctx.session.video = await getVideo(ctx.text!);
-    console.log(ctx.session);
 
     const keyboard = [];
 
@@ -91,10 +90,6 @@ scene.action('готово', async ctx => {
 
         ctx.scene.enter('start');
     });
-});
-
-scene.leave(async (ctx: any) => {
-    await ctx.scene.enter('start');
 });
 
 const getTimestampsKeyboard = (timestamps: Timestamp[]) => {

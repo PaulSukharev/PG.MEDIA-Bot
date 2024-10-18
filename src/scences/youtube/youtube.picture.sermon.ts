@@ -1,13 +1,12 @@
 import { IContextBot } from "@models/context.interface";
-import { createLivePicture } from "@services/youtube.service";
+import { uploadThumbnail } from "@services/youtube.service";
 import { Input, Markup } from "telegraf";
 import { BaseScene } from "telegraf/scenes";
 import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 import fs from 'fs';
 import path from "path";
 import axios from "axios";
-import { drawPicture, drawSermonPicture } from "@services/drawing.service";
-import moment from "moment";
+import { drawPicture } from "@services/drawing.service";
 
 const scene = new BaseScene<IContextBot>('youtube.picture.sermon');
 
@@ -117,11 +116,21 @@ scene.action('download', async ctx => {
     if (fs.existsSync(ctx.session.video?.picture?.imagePath!)) {
         fs.unlinkSync(ctx.session.video?.picture?.imagePath!);
     }
+
+    ctx.scene.enter('start');
 });
 
 scene.action('upload', async ctx => {
     removeTempMessages(ctx);
 
+    const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
+    await uploadThumbnail(ctx.session?.video?.id!, newPic);
+    await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+
+    fs.unlinkSync(newPic);
+    fs.unlinkSync(ctx.session.video?.picture?.imagePath!);
+
+    ctx.scene.enter('start');
 });
 
 export default scene;
