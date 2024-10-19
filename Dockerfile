@@ -1,19 +1,16 @@
-FROM python:3.11-slim AS bot
+FROM node:20
 
-RUN apt-get update
-RUN apt-get install -y python3 python3-pip python-dev build-essential python3-venv
-RUN apt-get -y install eog ffmpeg
+WORKDIR /usr/src/app
 
-WORKDIR /bot/app/
+COPY package.json package-lock.json tsconfig.json ./
 
-COPY . /bot/
+RUN npm ci
 
-RUN pip3 install -r ../requirements.txt
+COPY dist/ ./dist
+COPY src/assets/ ./src/assets/
 
-RUN sed -i 's/var_regex = re.compile(r"^\w+\W")*/var_regex = re.compile(r"^\$*\w+\W")/g' /usr/local/lib/python3.11/site-packages/pytube/cipher.py
+# RUN npm run start:prod \
+#     && npm cache clean --force
 
-RUN chmod +x bot.py
-
-ENTRYPOINT ["python", "-u"]
-
-CMD ["bot.py"]
+# RUN [ "npm", "install" ]
+ENTRYPOINT [ "npm", "run", "start:prod" ]
