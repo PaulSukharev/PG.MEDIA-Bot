@@ -7,7 +7,8 @@ import { removeAllFilesSync } from "utils";
 
 dotenv.config()
 
-const _tempDir = path.resolve(__dirname, '../temp/');
+const _dirname = path.resolve();
+const _tempDir = path.resolve(_dirname, 'temp/');
 removeAllFilesSync(_tempDir);
 
 const { BOT_TOKEN } = process.env;

@@ -1,7 +1,7 @@
 import { BaseScene } from "telegraf/scenes";
 import { IContextBot } from "../../models/context.interface";
-import { getYoutubeVideoId, isYouTubeVideo } from "@services/youtube.service";
-import { addMsgToRemoveList, removeMessage, removeTempMessages } from "utils/processMessages";
+import { isYouTubeVideo } from "@services/youtube.service";
+import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 
 const start = new BaseScene<IContextBot>('start');
 

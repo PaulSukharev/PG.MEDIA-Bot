@@ -1,4 +1,4 @@
-import ytdl, { getInfo, videoInfo } from '@distube/ytdl-core';
+import ytdl from '@distube/ytdl-core';
 import fs from 'fs';
 import readline from 'readline';
 import { Observable, concat, first, from, map, merge, mergeAll, of, switchMap, tap, zip } from 'rxjs'
@@ -13,8 +13,9 @@ import moment from 'moment';
 import { Timestamp, Video } from '@models/video';
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 
-const _tempDir = path.resolve(__dirname, '../../temp/');
-const _assetsDir = path.resolve(__dirname, '../assets/')
+const _dirname = path.resolve();
+const _tempDir = path.resolve(_dirname, 'temp/');
+const _assetsDir = path.resolve(_dirname, 'src/assets/')
 
 export async function isYouTubeVideo(link: string | undefined) {
     if (link == undefined) {
@@ -86,7 +87,7 @@ export const getTimestamps = async (id: string | undefined): Promise<Timestamp[]
     if (!id) {
         return [];
     }
-    const videoInfo = await getInfo(id);
+    const videoInfo = await ytdl.getInfo(id);
     return _getVideoTimestamps(videoInfo);
 };
 
@@ -95,7 +96,7 @@ export async function getPictureTypes(url: string | undefined) {
         throw Error('URL is empty!');
     }
 
-    const videoInfo = await getInfo(url);
+    const videoInfo = await ytdl.getInfo(url);
     console.log(videoInfo);
 }
 
@@ -179,7 +180,7 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
         );
 }
 
-function _mapVideo(videoInfo: videoInfo): Video {
+function _mapVideo(videoInfo: ytdl.videoInfo): Video {
     const video: Video = {
         id: videoInfo.videoDetails.videoId,
         title: videoInfo.videoDetails.title,
@@ -400,7 +401,7 @@ function _setAudioTags(audioOutput: string, videoInfo: ytdl.videoInfo): Promise<
     })
 }
 
-function _getVideoTimestamps(videoInfo: videoInfo): Timestamp[] {
+function _getVideoTimestamps(videoInfo: ytdl.videoInfo): Timestamp[] {
     try {
         const videoLength = videoInfo.videoDetails.lengthSeconds;
         const description = videoInfo.videoDetails.description;
@@ -466,17 +467,4 @@ function _timeToSeconds(time: string): number {
     }
 
     return 0;
-}
-
-module.exports = {
-    isYouTubeVideo,
-    getVideo,
-    getPictureTypes,
-    getYoutubeVideoId,
-    getTimestamps,
-    downloadAudio,
-    downloadAndUploadVideo,
-    uploadToYoutube,
-    uploadThumbnail,
-    createLivePicture
 }

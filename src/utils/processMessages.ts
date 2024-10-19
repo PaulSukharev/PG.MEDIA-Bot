@@ -23,14 +23,14 @@ export const addMsgToRemoveList = (messageId: number | undefined, ctx: IContextB
 
 const getMsgToRemoveList = (ctx: IContextBot) => {
 	const msgToRemoveList = ctx.session.usersList?.find(
-		(u) => u.id === ctx.from?.id
+		(u: any) => u.id === ctx.from?.id
 	)?.messagesToRemove;
 	return msgToRemoveList ?? [];
 };
 
 export const removeMessage = (messageId: number, ctx: IContextBot) => {
 	try {
-		ctx.deleteMessage(messageId).catch((er) => {});
+		ctx.deleteMessage(messageId).catch((er: any) => {});
 	} catch (error) {
 
 	}

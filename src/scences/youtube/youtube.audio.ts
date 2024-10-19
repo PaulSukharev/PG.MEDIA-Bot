@@ -4,6 +4,7 @@ import { BaseScene } from "telegraf/scenes";
 import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 import fs from 'fs';
 import { Input } from "telegraf";
+import { catchError } from "rxjs";
 
 const scene = new BaseScene<IContextBot>('youtube.audio');
 

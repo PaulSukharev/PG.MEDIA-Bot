@@ -26,6 +26,35 @@ scene.enter(async (ctx) => {
     addMsgToRemoveList(ctx.message?.message_id, ctx);
     removeTempMessages(ctx);
 
+    const title = ctx.session.video?.title;
+    if (title?.includes('Луки')) {
+    
+        ctx.session.video!.picture!.imagePath = path.resolve('src/assets/img/luke.jpg');
+        ctx.session.video!.picture!.transparent = 300;
+
+        const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
+        await uploadThumbnail(ctx.session?.video?.id!, newPic);
+        await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+    
+        fs.unlinkSync(newPic);
+    
+        ctx.scene.enter('start');
+        return;
+    }
+
+    if (title?.includes('Деяния')) {
+        ctx.session.video!.picture!.imagePath! = path.resolve('src/assets/img/acts.jpg');
+
+        const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
+        await uploadThumbnail(ctx.session?.video?.id!, newPic);
+        await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+    
+        fs.unlinkSync(newPic);
+    
+        ctx.scene.enter('start');
+        return;
+    }
+
     await ctx.reply('скинь картинку файлом для обложки', {
         reply_markup: {
             inline_keyboard: [],
@@ -40,8 +69,8 @@ scene.on('document', async (ctx) => {
     const {file_id: fileId, file_name: fileName} = ctx.update.message.document;
     const link = await ctx.telegram.getFileLink(fileId);
 
-    const _tempDir = path.resolve(__dirname, '../../../temp/');
-    const filePath = path.resolve(_tempDir, fileName!);
+    const __tempDir = path.resolve('temp/');
+    const filePath = path.resolve(__tempDir, fileName!);
     ctx.session.video!.picture!.imagePath = filePath;
 
     const writer = fs.createWriteStream(filePath);

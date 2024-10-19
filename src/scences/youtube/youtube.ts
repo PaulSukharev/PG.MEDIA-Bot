@@ -1,8 +1,7 @@
-import { Update } from "@telegraf/types";
-import { Context, Markup, Scenes } from "telegraf";
-import { BaseScene, SceneContext, Stage } from "telegraf/scenes";
+import { Markup } from "telegraf";
+import { BaseScene } from "telegraf/scenes";
 import { IContextBot } from "../../models/context.interface";
-import { downloadAndUploadVideo, getTimestamps, getVideo, getYoutubeVideoId } from "@services/youtube.service";
+import { downloadAndUploadVideo, getVideo } from "@services/youtube.service";
 import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 import { Timestamp } from "@models/video";
 

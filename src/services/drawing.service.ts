@@ -8,7 +8,7 @@ const months = ["ЯНВАРЯ", "ФЕВРАЛЯ", "МАРТА", "АПРЕЛЯ", 
 
 
 export async function drawLivePicture(title: string | undefined, date: moment.Moment): Promise<string> {
-    const liveImg = await loadImage(__dirname + '/../assets/img/live.jpg');
+    const liveImg = await loadImage('src/assets/img/live.jpg');
 
     return new Promise((resolve, rejects) => {
         if (title == undefined || title == '') {
@@ -17,7 +17,7 @@ export async function drawLivePicture(title: string | undefined, date: moment.Mo
     
         title = title.toUpperCase();
 
-        registerFont(__dirname + '/../assets/fonts/SolomonSans-Medium.ttf',  {
+        registerFont('src/assets/fonts/SolomonSans-Medium.ttf',  {
             family: 'SolomonSans Medium'
         });
     
@@ -41,7 +41,7 @@ export async function drawLivePicture(title: string | undefined, date: moment.Mo
         ctx.fillStyle = "rgb(0, 0, 0)";
         ctx.fillText(dateStr, xDate, 1200);
         
-        const path = __dirname + '/../../temp/' + title + '.jpeg';
+        const path = 'temp/' + title + '.jpeg';
         const out = fs.createWriteStream(path),
         stream = canvas.createJPEGStream();
         stream.pipe(out);
@@ -54,7 +54,7 @@ export async function drawLivePicture(title: string | undefined, date: moment.Mo
 
 export async function drawSermonPicture(preacher: string, title: string | undefined, date: moment.Moment | string, transparent: number, picture_path: string): Promise<string> {
     const img = await loadImage(picture_path);
-    const preach = await loadImage(__dirname + '/../assets/img/preach.png');
+    const preach = await loadImage('src/assets/img/preach.png');
 
     const ratio = img.width / img.height;
     let cropWidth;
@@ -73,17 +73,33 @@ export async function drawSermonPicture(preacher: string, title: string | undefi
             throw Error('Title is empty');
         }
 
-        registerFont(__dirname + '/../assets/fonts/SolomonSans-Medium.ttf',  {
+        registerFont('src/assets/fonts/SolomonSans-Medium.ttf',  {
             family: 'SolomonSans Medium'
         });
 
-        registerFont(__dirname + '/../assets/fonts/SolomonSans-SemiBold.ttf',  {
+        registerFont('src/assets/fonts/SolomonSans-SemiBold.ttf',  {
             family: 'SolomonSans SemiBold'
         });
     
         const canvas = createCanvas(1920, 1080);
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, - (img.width - cropWidth) / 2, - (img.height - cropHeigth) / 2);
+
+
+        const imgRatio = img.height / img.width
+        const winRatio = canvas.height / canvas.width
+        if (imgRatio > winRatio) {
+            const h = canvas.width * imgRatio
+            ctx.drawImage(img, 0, (canvas.height - h) / 2, canvas.width, h)
+        }
+        if (imgRatio < winRatio) {
+            const w = canvas.width * winRatio / imgRatio
+            ctx.drawImage(img, (canvas.width - w) / 2, 0, w, canvas.height)
+        }
+
+        // var factor  = Math.min ( canvas.width / cropWidth, canvas.height / cropHeigth );
+
+        // ctx.drawImage(img, - (img.width - cropWidth) / 2, - (img.height - cropHeigth) / 2);
+        // ctx.drawImage(img, 0, 0, canvas.width * factor, canvas.height * factor);
 
         ctx.fillStyle = `rgba(0, 0, 0, 0.${transparent})`;
         ctx.fillRect(0, 0, 1920, 1080);
@@ -95,12 +111,13 @@ export async function drawSermonPicture(preacher: string, title: string | undefi
 
         drawMultilineText(ctx, title);
     
+        ctx.font = '60px "SolomonSans Medium"';
         ctx.fillText(preacher, ctx.canvas.width / 2, 225);
     
         const dateStr = typeof(date) == 'string' ? date : `${date.date()} ${months[date.month()]} ${date.year()}`;
         ctx.fillText(dateStr, ctx.canvas.width / 2, 895);
         
-        const path = __dirname + '/../../temp/' + 'test' + '.jpeg';
+        const path = 'temp/' + 'test' + '.jpeg';
         const out = fs.createWriteStream(path),
         stream = canvas.createJPEGStream();
         stream.pipe(out);

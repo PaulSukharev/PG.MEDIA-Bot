@@ -4,10 +4,12 @@
   "description": "telegram bot for media team in the 'Mountain of the Worship' Church",
   "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "prebuild": "rimraf ./dist/*",
-    "build": "node --max-old-space-size=2048",
-    "start:dev": "nodemon"
+    "build": "tsc -p . && npx tsc-alias",
+    "start:dev": "nodemon",
+    "start:prod": "node dist/index.js",
+    "start:docker": "node index.js",
+    "docker": "npm run build && docker buildx build --platform linux/amd64 --tag 1442/pg.media_bot:v0.36 ."
   },
   "author": {
     "name": "palliok",
@@ -21,6 +23,7 @@
     "@types/node": "^20.14.2",
     "nodemon": "^3.1.3",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5"
   },
@@ -36,6 +39,7 @@
     "moment": "^2.30.1",
     "momentjs": "^2.0.0",
     "rxjs": "^7.8.1",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "tsx": "^4.19.1"
   }
 }
