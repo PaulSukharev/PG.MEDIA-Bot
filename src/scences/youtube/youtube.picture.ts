@@ -1,6 +1,5 @@
 import { IContextBot } from "@models/context.interface";
 import { getPictureFromVideo } from "@services/drawing.service";
-import { createLivePicture } from "@services/youtube.service";
 import { BaseScene } from "telegraf/scenes";
 import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 
@@ -16,6 +15,10 @@ scene.enter(async (ctx) => {
     }
 
     ctx.session.video.picture = getPictureFromVideo(ctx.session.video);
+    if (ctx.session.video.title.toLowerCase().includes('богослужение')) {
+        await ctx.scene.enter('youtube.picture.live');
+        return;
+    }
 
     const keyboard = [['трансляция'], ['проповедь']];
 
@@ -35,9 +38,7 @@ scene.on('message', async (ctx) => {
 
     switch (ctx.text) {
         case 'трансляция':
-            const res = await createLivePicture(ctx.session.video?.id!);
-            await ctx.sendMessage(ctx.session.video?.title +  (res ? ' ✅' : ' ❌'));
-            await ctx.scene.enter('start');
+            await ctx.scene.enter('youtube.picture.live');
             break;
         case 'проповедь':
             await ctx.scene.enter('youtube.picture.sermon');
