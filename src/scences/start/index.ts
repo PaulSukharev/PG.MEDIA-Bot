@@ -5,8 +5,6 @@ import { addMsgToRemoveList, removeTempMessages } from "utils/processMessages";
 
 const start = new BaseScene<IContextBot>('start');
 
-start.start(ctx => ctx.scene.enter('start'));
-
 start.enter(async (ctx) => {
     addMsgToRemoveList(ctx.message?.message_id, ctx);
     removeTempMessages(ctx);

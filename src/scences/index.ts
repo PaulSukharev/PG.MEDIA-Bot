@@ -15,4 +15,6 @@ const stage = new Stage([
     youtubeAudio
   ]);
 
+stage.start(ctx => ctx.scene.enter('start'));
+
 export default stage;

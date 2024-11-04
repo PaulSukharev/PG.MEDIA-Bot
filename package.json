@@ -28,7 +28,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@distube/ytdl-core": "^4.14.4",
+    "@distube/ytdl-core": "^4.15.1",
     "axios": "^1.7.7",
     "canvas": "^2.11.2",
     "dotenv": "^16.4.5",
