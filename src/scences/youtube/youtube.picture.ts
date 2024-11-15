@@ -15,8 +15,14 @@ scene.enter(async (ctx) => {
     }
 
     ctx.session.video.picture = getPictureFromVideo(ctx.session.video);
-    if (ctx.session.video.title.toLowerCase().includes('богослужение')) {
+    const title = ctx.session.video.title.toLocaleLowerCase();
+    if (title.includes('богослужение')) {
         await ctx.scene.enter('youtube.picture.live');
+        return;
+    }
+
+    if (title.includes('луки') || title.includes('деяния')) {
+        await ctx.scene.enter('youtube.picture.sermon');
         return;
     }
 

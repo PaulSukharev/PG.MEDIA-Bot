@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
+import * as dotenv from 'dotenv'
+
+dotenv.config()
+
 const { RETRY_ATEMPS } = process.env;
 
 export function removeAllFilesSync(directory: string) {
@@ -16,18 +20,30 @@ export function removeAllFilesSync(directory: string) {
     }
 }
 
-export function retryMethod(fn: () => void) {
+export function retryMethod(fn: any, args: any) {
     let i = 0;
     let attemps = RETRY_ATEMPS != undefined ? parseInt(RETRY_ATEMPS) : 5;
 
     while (i < attemps) {
         try {
-            fn();
-            return;
+            const res = fn(args);
+            return res;
         } catch (error: any) {
             console.error(error);
         }
     }
+}
 
-    
+export async function retryPromiseMethod(fn: any) {
+    let i = 0;
+    let attemps = RETRY_ATEMPS != undefined ? parseInt(RETRY_ATEMPS) : 5;
+
+    while (i < attemps) {
+        try {
+            const res = await fn();
+            return res;
+        } catch (error: any) {
+            console.error(error);
+        }
+    }
 }

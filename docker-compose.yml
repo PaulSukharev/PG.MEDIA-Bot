@@ -1,0 +1,16 @@
+version: '3'
+services:
+  bot:
+    image: 1442/pg.media_bot:latest
+    container_name: bot
+    restart: always
+    platform: linux/amd64
+    build:
+      context: .
+    environment:
+      BOT_TOKEN:
+      CLIENT_ID:
+      CLIENT_SECRET:
+      REFRESH_TOKEN:
+      RETRY_ATEMPS:
+      ALLOWED_USERS:

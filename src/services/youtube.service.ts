@@ -11,6 +11,7 @@ import { google } from 'googleapis';
 import { drawLivePicture } from './drawing.service';
 import moment from 'moment';
 import { Timestamp, Video } from '@models/video';
+import { retryPromiseMethod } from 'utils';
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 
 const _dirname = path.resolve();
@@ -115,7 +116,7 @@ export function downloadAudio(url: string | undefined): Observable<any> {
 
                 const audio$ = fs.existsSync(audioOutput)
                     ? of(audioOutput)
-                    : from(_download(url, audioFormat, audioOutput));
+                    : from(_safeDownload(url, audioFormat, audioOutput));
 
                 return audio$
                     .pipe(
@@ -153,8 +154,8 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
                 const audioFormat = _getAudioFormat(videoInfo);
                 const audioOutput = path.resolve(_tempDir, `${id}_audio.mp4`);
 
-                const video$ = from(_download(url, videoFormat, videoOutput));
-                const audio$ = from(_download(url, audioFormat, audioOutput));
+                const video$ = from(_safeDownload(url, videoFormat, videoOutput));
+                const audio$ = from(_safeDownload(url, audioFormat, audioOutput));
 
                 return zip(video$, audio$)
                     .pipe(
@@ -189,6 +190,10 @@ function _mapVideo(videoInfo: ytdl.videoInfo): Video {
         timestamps: _getVideoTimestamps(videoInfo)
     };
     return video;
+}
+
+function _safeDownload(url: string, format: ytdl.videoFormat, output: string): Promise<string> {
+    return retryPromiseMethod(() => _download(url, format, output));
 }
 
 function _download(url: string, format: ytdl.videoFormat, output: string): Promise<string> {

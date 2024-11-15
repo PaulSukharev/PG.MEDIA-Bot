@@ -55,12 +55,13 @@ scene.enter(async (ctx) => {
         return;
     }
 
-    await ctx.reply('скинь картинку файлом для обложки', {
+    const msg = await ctx.reply('скинь картинку файлом для обложки', {
         reply_markup: {
             inline_keyboard: [],
             resize_keyboard: true
         }
     });
+    addMsgToRemoveList(msg.message_id, ctx);
 });
 
 scene.on('document', async (ctx) => {

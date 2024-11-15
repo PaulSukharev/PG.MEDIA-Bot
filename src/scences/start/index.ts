@@ -11,7 +11,6 @@ start.enter(async (ctx) => {
 
     ctx.session.customText = undefined;
     ctx.session.timestamps = undefined;
-    ctx.session.usersList = undefined;
     ctx.session.video = undefined;
 
     const msg = await ctx.reply('😬', {

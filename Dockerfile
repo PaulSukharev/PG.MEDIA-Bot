@@ -1,16 +1,18 @@
-FROM node:20
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json tsconfig.json ./
 
+ENV GENERATE_SOURCEMAP=false
+ENV NODE_OPTIONS=--max-old-space-size=8192
+
 RUN npm ci
+
+COPY src/ ./src
+RUN npm run build
 
 COPY dist/ ./dist
 COPY src/assets/ ./src/assets/
 
-# RUN npm run start:prod \
-#     && npm cache clean --force
-
-# RUN [ "npm", "install" ]
 ENTRYPOINT [ "npm", "run", "start:prod" ]
