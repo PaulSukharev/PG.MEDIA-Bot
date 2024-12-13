@@ -34,7 +34,7 @@ scene.enter(async (ctx) => {
 
         const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
         await uploadThumbnail(ctx.session?.video?.id!, newPic);
-        await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+        await ctx.sendMessage('🟢 Картинка: ' + ctx.session.video?.title);
     
         fs.unlinkSync(newPic);
     
@@ -47,7 +47,7 @@ scene.enter(async (ctx) => {
 
         const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
         await uploadThumbnail(ctx.session?.video?.id!, newPic);
-        await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+        await ctx.sendMessage('🟢 Картинка: ' + ctx.session.video?.title);
     
         fs.unlinkSync(newPic);
     
@@ -155,7 +155,7 @@ scene.action('upload', async ctx => {
 
     const newPic = await drawPicture(ctx.session?.video?.picture!) as string;
     await uploadThumbnail(ctx.session?.video?.id!, newPic);
-    await ctx.sendMessage(ctx.session.video?.title + ' ✅');
+    await ctx.sendMessage('🟢 Картинка: ' + ctx.session.video?.title);
 
     fs.unlinkSync(newPic);
     fs.unlinkSync(ctx.session.video?.picture?.imagePath!);

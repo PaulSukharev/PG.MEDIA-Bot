@@ -46,4 +46,19 @@ export async function retryPromiseMethod(fn: any) {
             console.error(error);
         }
     }
+
+    throw Error('Не удалось выполнить метод');
+}
+
+export function debounce<Params extends any[]>(
+    func: (...args: Params) => any,
+    timeout: number,
+): (...args: Params) => void {
+    let timer: NodeJS.Timeout
+    return (...args: Params) => {
+        clearTimeout(timer)
+        timer = setTimeout(() => {
+            func(...args)
+        }, timeout)
+    }
 }

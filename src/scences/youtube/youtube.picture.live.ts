@@ -14,8 +14,8 @@ scene.enter(async (ctx) => {
         return;
     }
 
-    const res = await createLivePicture(ctx.session.video?.id!);
-    await ctx.sendMessage(ctx.session.video?.title +  (res ? ' ✅' : ' ❌'));
+    await createLivePicture(ctx.session.video?.id!);
+    await ctx.sendMessage('🟢 Картинка: ' + ctx.session.video?.title);
     await ctx.scene.enter('start');
 });
 

@@ -1,7 +1,7 @@
 import ytdl from '@distube/ytdl-core';
 import fs from 'fs';
 import readline from 'readline';
-import { Observable, concat, first, from, map, merge, mergeAll, of, switchMap, tap, zip } from 'rxjs'
+import { Observable, first, from, map, of, switchMap, tap, zip } from 'rxjs'
 import path from 'path';
 
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
@@ -12,6 +12,8 @@ import { drawLivePicture } from './drawing.service';
 import moment from 'moment';
 import { Timestamp, Video } from '@models/video';
 import { retryPromiseMethod } from 'utils';
+import { IContextBot } from '@models/context.interface';
+import { addMsgToRemoveList, removeTempMessages } from 'utils/processMessages';
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 
 const _dirname = path.resolve();
@@ -128,7 +130,7 @@ export function downloadAudio(url: string | undefined): Observable<any> {
         );
 }
 
-export function downloadAndUploadVideo(url: string | undefined, timestamps: Timestamp[] | undefined): Observable<any> {
+export function downloadAndUploadVideo(url: string | undefined, timestamps: Timestamp[] | undefined, ctx: IContextBot): Observable<any> {
     if (url == undefined) {
         throw Error('URL is empty!');
     }
@@ -139,6 +141,10 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
 
     return from(ytdl.getInfo(url))
         .pipe(
+            tap(() => {
+                removeTempMessages(ctx);
+                ctx.sendMessage('📥').then(msg => addMsgToRemoveList(msg.message_id, ctx));
+            }),
             switchMap((videoInfo: ytdl.videoInfo) => {
                 const id = videoInfo.videoDetails.videoId;
 
@@ -160,17 +166,28 @@ export function downloadAndUploadVideo(url: string | undefined, timestamps: Time
                 return zip(video$, audio$)
                     .pipe(
                         first(),
+                        tap(() => {
+                            removeTempMessages(ctx);
+                            ctx.sendMessage('⏳').then(msg => addMsgToRemoveList(msg.message_id, ctx));
+                        }),
                         switchMap(([video, audio]) => from(_mergeVideoAndAudio(video, audio, mergeVideoOutput))),
                         map(() => videoInfo)
                     )
             }),
             switchMap((videoInfo) => cut(videoInfo.videoDetails.videoId, timestamps)),
-            switchMap((timestamp) => {
-                if (timestamp == undefined) {
+            tap(() => {
+                removeTempMessages(ctx);
+                ctx.sendMessage('📤').then(msg => addMsgToRemoveList(msg.message_id, ctx));
+            }),
+            switchMap((timestamps) => {
+                if (timestamps == undefined || timestamps.length == 0) {
                     return of(false);
                 }
-                const file = `${_tempDir}/${timestamp.id}_${timestamp.start}.mp4`
-                return uploadToYoutube(file, timestamp.title, timestamp.description);
+
+                return zip(timestamps.map(timestamp => {
+                    const file = `${_tempDir}/${timestamp!.id}_${timestamp!.start}.mp4`;
+                    return uploadToYoutube(file, timestamp!.title, timestamp!.description);
+                }));
             }),
             tap(() => {
                 const pathFile = path.resolve(_tempDir, `${timestamps[0].id}.mp4`);
@@ -209,9 +226,10 @@ function _download(url: string, format: ytdl.videoFormat, output: string): Promi
             const percent = downloaded / total;
             const downloadedMinutes = (Date.now() - starttime) / 1000 / 60;
             const estimatedDownloadTime = (downloadedMinutes / percent) - downloadedMinutes;
+            const size = format.hasVideo ? 1 : 1024 * 1024;
             readline.cursorTo(process.stdout, 0);
             process.stdout.write(`${(percent * 100).toFixed(2)}% downloaded `);
-            process.stdout.write(`(${(downloaded / 1024 / 1024).toFixed(2)}MB of ${(total / 1024 / 1024).toFixed(2)}MB)\n`);
+            process.stdout.write(`(${(downloaded / size).toFixed(2)}MB of ${(total / size).toFixed(2)}MB)\n`);
             process.stdout.write(`running for: ${downloadedMinutes.toFixed(2)}minutes`);
             process.stdout.write(`, estimated time left: ${estimatedDownloadTime.toFixed(2)}minutes `);
             readline.moveCursor(process.stdout, 0, -1);
@@ -227,40 +245,43 @@ function _download(url: string, format: ytdl.videoFormat, output: string): Promi
     });
 }
 
-export async function uploadToYoutube(file: string, title: string, description?: string) {
-    const auth = GoogleService.getOauth2();
+export async function uploadToYoutube(file: string, title: string, description?: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        const auth = GoogleService.getOauth2();
 
-    const youtube = google.youtube({
-        version: 'v3',
-        auth: auth
-    });
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: auth
+        });
 
-    return youtube.videos.insert({
-        part: ['snippet', 'status'],
-        requestBody: {
-            snippet: {
-                title: title,
-                description: description
+        youtube.videos.insert({
+            part: ['snippet', 'status'],
+            requestBody: {
+                snippet: {
+                    title: title,
+                    description: description
+                },
+                status: {
+                    privacyStatus: "private",
+                    madeForKids: false,
+                    selfDeclaredMadeForKids: false
+                }
             },
-            status: {
-                privacyStatus: "private",
-                madeForKids: false,
-                selfDeclaredMadeForKids: false
+            media: {
+                body: fs.createReadStream(file),
             }
-        },
-        media: {
-            body: fs.createReadStream(file),
-        }
-    }, function(err, response) {
-        if (fs.existsSync(file)) {
-            fs.unlinkSync(file);
-        }
-        if (err) {
-          console.log('The API returned an error: ' + err);
-          return;
-        }
-    
-        console.log(`Video uploaded: ${title}`);
+        }, function(err, response) {
+            if (fs.existsSync(file)) {
+                fs.unlinkSync(file);
+            }
+            if (err) {
+              console.log('The API returned an error: ' + err);
+              reject(false);
+            }
+
+            console.log(`Video uploaded: ${title}`);
+            resolve(true);
+        });
     });
 }
 
@@ -318,7 +339,7 @@ function cut(id: string, timestamps: Timestamp[]) {
     }
 
     const timestamps$ = timestamps.map(x => from(_cutTimestamp(id, x)));
-    return concat(...timestamps$);
+    return zip(...timestamps$);
 }
 
 function _cutTimestamp(id: string, timestamp: Timestamp): Promise<Timestamp | undefined> {

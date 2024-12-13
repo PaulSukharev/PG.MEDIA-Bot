@@ -9,8 +9,8 @@ ENV NODE_OPTIONS=--max-old-space-size=8192
 
 RUN npm ci
 
-COPY src/ ./src
-RUN npm run build
+# COPY src/ ./src
+# RUN npm run build
 
 COPY dist/ ./dist
 COPY src/assets/ ./src/assets/

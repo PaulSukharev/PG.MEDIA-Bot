@@ -77,22 +77,24 @@ scene.action(/timestamp\:(\d*)$/, ctx => {
 });
 
 scene.action('готово', async ctx => {
-    await ctx.editMessageText('Download and upload', {
+    await ctx.editMessageText('⏳', {
         reply_markup: undefined
     });
-
     removeTempMessages(ctx);
 
-    downloadAndUploadVideo(ctx.session.video?.id, ctx.session.video?.timestamps?.filter(x => x.select)).subscribe(() => {
+    const msg = await ctx.sendMessage('⏳');
+    addMsgToRemoveList(msg.message_id, ctx);
+
+    downloadAndUploadVideo(ctx.session.video?.id, ctx.session.video?.timestamps?.filter(x => x.select), ctx).subscribe(() => {
         const msg = ctx.session.video?.timestamps?.filter(x => x.select).map(x => x.title).join(', ');
-        ctx.reply(`Успешно загружены: ${msg}`);
+        ctx.reply(`🟢 Видео: ${msg}`);
 
         ctx.scene.enter('start');
     });
 });
 
 const getTimestampsKeyboard = (timestamps: Timestamp[]) => {
-    const keyboard = timestamps.map(x => [ Markup.button.callback(x.title + ' ' + (x.select ? '✅' : '❌'), 'timestamp:' + x.start.toString())]);
+    const keyboard = timestamps.map(x => [ Markup.button.callback((x.select ? '✅' : '❌') + ' ' + x.title, 'timestamp:' + x.start.toString())]);
     keyboard.push([ Markup.button.callback('готово', 'готово')]);
     return keyboard;
 }

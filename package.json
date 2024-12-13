@@ -9,7 +9,7 @@
     "start:dev": "nodemon",
     "start:prod": "node dist/index.js",
     "start:docker": "node index.js",
-    "docker": "npm run build && docker buildx build --platform linux/amd64 --tag 1442/pg.media_bot:v0.39 ."
+    "docker": "npm run build && docker buildx build --platform linux/amd64 --tag 1442/pg.media_bot:v0.44 ."
   },
   "author": {
     "name": "palliok",

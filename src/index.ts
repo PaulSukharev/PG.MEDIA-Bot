@@ -22,7 +22,7 @@ bot.use(stage.middleware());
 
 bot.catch((err, ctx) => {
     console.error(err);
-    ctx.sendMessage('🤡').catch(er => console.error(er));
+    ctx.sendMessage('🤡');
 });
 
 bot.start(ctx => {
